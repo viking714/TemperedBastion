@@ -1,0 +1,156 @@
+/**
+ * 设计令牌（权威源）· Material Design 3 深色主题
+ * ------------------------------------------------------------------
+ * 本文件是**唯一**允许出现颜色字面量（hex / rgb）与关键尺寸字面量的地方之一
+ * （另一个是 Canvas 侧的等价镜像 `tokens.ts`，两者由 tokens.sync.test.ts 守护）。
+ *
+ * 组件与 Canvas 渲染一律通过 var(--token) / tokens.ts 取值，不得硬编码。
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- M3 颜色角色（深色） ---------- */
+  --md-sys-color-primary: #8ad5ff;
+  --md-sys-color-on-primary: #00344a;
+  --md-sys-color-primary-container: #004d68;
+  --md-sys-color-on-primary-container: #c7e7ff;
+  --md-sys-color-secondary: #b3cad9;
+  --md-sys-color-on-secondary: #1d333f;
+  --md-sys-color-secondary-container: #344a56;
+  --md-sys-color-on-secondary-container: #cfe6f6;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-success: #86e0a3;
+  --md-sys-color-on-success: #00391b;
+  --md-sys-color-success-container: #00522a;
+  --md-sys-color-on-success-container: #a2f8bd;
+  --md-sys-color-surface: #0f1417;
+  --md-sys-color-surface-container-lowest: #0a0e11;
+  --md-sys-color-surface-container-low: #171c1f;
+  --md-sys-color-surface-container: #1b2124;
+  --md-sys-color-surface-container-high: #262c2f;
+  --md-sys-color-surface-container-highest: #31373a;
+  --md-sys-color-on-surface: #dee3e6;
+  --md-sys-color-on-surface-variant: #bfc8cc;
+  --md-sys-color-outline: #899296;
+  --md-sys-color-outline-variant: #3f484b;
+  --md-sys-color-inverse-surface: #dee3e6;
+  --md-sys-color-on-inverse-surface: #2b3134;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-focus-ring: #ffd8a8;
+
+  /* ---------- 战场专用颜色（Canvas 与覆盖层共用） ---------- */
+  --td-canvas-bg: #0a0e11;
+  --td-canvas-grid: #1b2124;
+  --td-canvas-grid-major: #262c2f;
+  --td-canvas-path: #3a4145;
+  --td-canvas-path-edge: #565f64;
+  --td-canvas-spawn: #ffb4ab;
+  --td-canvas-base: #86e0a3;
+  --td-tower-arrow: #8ad5ff;
+  --td-tower-cannon: #ffcf8a;
+  --td-tower-frost: #a8e6ff;
+  --td-tower-barrel: #dee3e6;
+  --td-enemy-normal: #d98be0;
+  --td-enemy-normal-edge: #8e4b96;
+  --td-enemy-fast: #8ae6a1;
+  --td-enemy-fast-edge: #2f7f47;
+  --td-enemy-heavy: #e0a58a;
+  --td-enemy-heavy-edge: #8a4f36;
+  --td-enemy-slow-ring: #a8e6ff;
+  --td-hp-high: #86e0a3;
+  --td-hp-mid: #ffcf8a;
+  --td-hp-low: #ffb4ab;
+  --td-projectile: #f2f6f8;
+  --td-projectile-splash: #ffcf8a;
+  --td-effect-hit: #f2f6f8;
+  --td-effect-splash: #ffb07a;
+  --td-hover-legal: #86e0a3;
+  --td-hover-illegal: #ffb4ab;
+  --td-range-ring: #8ad5ff;
+  --td-selection-ring: #ffd8a8;
+
+  /* ---------- M3 字阶 ---------- */
+  --md-sys-typescale-title-large: 20px;
+  --md-sys-typescale-title-medium: 16px;
+  --md-sys-typescale-body-large: 15px;
+  --md-sys-typescale-body-medium: 14px;
+  --md-sys-typescale-label-large: 14px;
+  --md-sys-typescale-label-medium: 12px;
+  --md-sys-typescale-label-small: 11px;
+  --md-sys-typescale-line-height: 1.6;
+
+  /* ---------- 字重 ---------- */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --font-family-sans: -apple-system, 'Segoe UI', Roboto, 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+
+  /* ---------- 间距（同一 4px 基准的倍数） ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ---------- 圆角 ---------- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* ---------- 描边 / 层级 ---------- */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --elevation-2: 0 4px 14px rgba(0, 0, 0, 0.55);
+
+  /* ---------- 动效 ---------- */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---------- Canvas 几何比例（相对 tileSizePx，无量纲） ---------- */
+  --canvas-enemy-radius-ratio: 0.3;
+  --canvas-enemy-heavy-radius-ratio: 0.36;
+  --canvas-enemy-edge-width: 2;
+  --canvas-tower-base-ratio: 0.78;
+  --canvas-tower-turret-ratio: 0.34;
+  --canvas-tower-muzzle-ratio: 0.22;
+  --canvas-tower-corner-ratio: 0.14;
+  --canvas-tower-base-fill-alpha: 0.22;
+  --canvas-hp-track-alpha: 0.35;
+  --canvas-ring-alpha: 0.55;
+  --canvas-health-bar-width-ratio: 0.8;
+  --canvas-health-bar-height-ratio: 0.12;
+  --canvas-health-bar-offset-ratio: -0.42;
+  --canvas-health-low-threshold: 0.35;
+  --canvas-health-mid-threshold: 0.65;
+  --canvas-projectile-radius-ratio: 0.09;
+  --canvas-projectile-splash-ratio: 0.13;
+  --canvas-slow-ring-ratio: 0.46;
+  --canvas-slow-spike-count: 4;
+  --canvas-selection-ring-ratio: 0.54;
+  --canvas-range-ring-width: 2;
+  --canvas-range-fill-alpha: 0.12;
+  --canvas-grid-line-width: 1;
+  --canvas-grid-major-every: 2;
+  --canvas-path-width-ratio: 0.8;
+  --canvas-path-core-ratio: 0.62;
+  --canvas-endpoint-ring-ratio: 0.34;
+  --canvas-hover-fill-alpha: 0.3;
+  --canvas-hover-stroke-width: 2;
+  --canvas-effect-min-radius-ratio: 0.12;
+  --canvas-effect-max-radius-ratio: 1.05;
+  --canvas-effect-life-ms: 380;
+  --canvas-effect-pool-limit: 64;
+  --canvas-spawn-marker-ratio: 0.4;
+  --canvas-base-marker-ratio: 0.44;
+  --canvas-span-marker-ratio: 0.3;
+}

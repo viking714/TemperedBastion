@@ -1,0 +1,18 @@
+{
+  "name": "tower-defense",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "全栈网页塔防小游戏：React + TypeScript + Vite + Canvas 2D（自建渲染） / FastAPI + SQLAlchemy + SQLite",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "node scripts/dev.mjs --server-only",
+    "dev:client": "node scripts/dev.mjs --client-only",
+    "setup": "node scripts/dev.mjs --setup-only",
+    "test:core": "npm --prefix client run test",
+    "build": "npm --prefix client run build"
+  }
+}
