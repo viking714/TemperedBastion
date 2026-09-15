@@ -88,15 +88,25 @@ code {
 
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  /* 固定为一屏高并裁掉溢出：**整页不做纵向滚动**。
+     需要滚动的只有右侧栏内部的「可滚动区」（建塔 / 塔详情）；
+     波次面板固定在侧栏底部，矮视口下也始终在视口内可触达
+     —— 不再像 Tester V-7-1 那样被推到折叠线以下、要靠整页滚动才看得到。 */
+  height: 100vh;
+  height: 100dvh; /* 移动端动态工具栏下更贴合可视高度；不支持时回退到 100vh */
+  overflow: hidden;
 }
 
 .td-main {
   flex: 1 1 auto;
+  /* 允许在固定高的 .td-app 内收缩：min-height:auto 默认值会挡住收缩，必须显式归零。 */
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(var(--td-sidebar-min), var(--td-sidebar-max));
+  /* 单行撑满可用高度，页签（stage/sidebar）纵向 stretch 后才拿得到受限高度。 */
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  align-items: stretch;
   padding: var(--space-4) var(--space-5) var(--space-5);
 }
 
@@ -123,6 +133,32 @@ code {
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
+  /* 侧栏本身通常不滚动：内部拆成「可滚动区 + 固定区」两段。
+     min-height:0 让侧栏能在固定高的 .td-main 里收缩。
+     overflow-y:auto 只作兜底 —— 万一视口比波次面板还矮，侧栏自身可滚，
+     仍不会退化成整页滚动。 */
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 可滚动区：建塔 / 塔详情。自身滚动，不推动整页。 */
+.td-sidebar__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 面板锁死纵向不收缩：`.td-panel` 带 `overflow: hidden`，这让它的 `min-height: auto`
+   归零 —— 在受限高度里会被 flex/grid 压扁到装不下内容，控件被 overflow:hidden
+   裁掉，且容器 scrollHeight 不增长 → 既看不见、又滚不到（比原缺陷更糟）。
+   锁死收缩后面板保持自然高度，溢出交给滚动区自身滚动。 */
+.td-sidebar__scroll > .td-panel,
+.td-sidebar > .td-panel {
+  flex: 0 0 auto;
 }
 
 .td-toast {
@@ -1057,11 +1093,17 @@ code {
 @media (max-width: 1100px) {
   .td-main {
     grid-template-columns: minmax(0, 1fr);
+    /* 窄屏：棋盘行按内容高（auto），侧栏占剩余高度并自行滚动。 */
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .td-sidebar {
+  /* 窄屏把「建塔 / 塔详情」并成自适应多列（≥2 栏时更省高度）。 */
+  .td-sidebar__scroll {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--td-sidebar-min), 1fr));
+    /* grid 的 `auto` 行同样会把带 overflow:hidden 的面板压到 0（与 flex 同理），
+       锁成 max-content 后面板保持自然高度、溢出交给滚动区滚动。 */
+    grid-auto-rows: max-content;
   }
 }
 

@@ -263,27 +263,32 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
         </section>
 
         <aside className="td-sidebar" aria-label="操作面板">
-          <Panel title="建塔">
-            <BuildPanel
-              config={config}
-              gold={snapshot.gold}
-              selectedTowerId={snapshot.buildTowerId}
-              frozen={frozen}
-              frozenReason={frozenReason}
-              onSelect={(towerId) => store.selectBuildTower(towerId)}
-            />
-          </Panel>
-          <Panel title="塔详情">
-            <TowerDetail
-              selected={snapshot.selected}
-              gold={snapshot.gold}
-              frozen={frozen}
-              frozenReason={frozenReason}
-              onUpgrade={() => store.upgradeSelected()}
-              onSell={() => store.sellSelected()}
-              onTargeting={(mode) => store.setSelectedTargeting(mode)}
-            />
-          </Panel>
+          {/* 滚动区只包「建塔 / 塔详情」，把「波次」留在外面固定在侧栏底部：
+              矮视口（PRD 最小 1280×720，乃至 390×844）下，波次控制永远在视口内可触达，
+              不会像 Tester V-7-1 那样被截到折叠线以下。 */}
+          <div className="td-sidebar__scroll">
+            <Panel title="建塔">
+              <BuildPanel
+                config={config}
+                gold={snapshot.gold}
+                selectedTowerId={snapshot.buildTowerId}
+                frozen={frozen}
+                frozenReason={frozenReason}
+                onSelect={(towerId) => store.selectBuildTower(towerId)}
+              />
+            </Panel>
+            <Panel title="塔详情">
+              <TowerDetail
+                selected={snapshot.selected}
+                gold={snapshot.gold}
+                frozen={frozen}
+                frozenReason={frozenReason}
+                onUpgrade={() => store.upgradeSelected()}
+                onSell={() => store.sellSelected()}
+                onTargeting={(mode) => store.setSelectedTargeting(mode)}
+              />
+            </Panel>
+          </div>
           <Panel title="波次">
             <WaveControls
               waveState={snapshot.waveState}
