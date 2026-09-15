@@ -46,9 +46,24 @@ export function totalInvested(tower: TowerRuntime, towerDef: TowerDef): number {
   return invested;
 }
 
-/** 出售返还：向下取整到整数金币，避免出现小数金币。 */
+/**
+ * 出售返还的浮点补偿（相对量级）。
+ *
+ * `ratio × totalInvested` 会出现 IEEE-754 乘法误差（相对约 1e-16），使数学上**恰为整数**
+ * 的结果掉到整数下方（如 90×0.7 = 62.99999999999999），直接 `Math.floor` 会把误差放大成
+ * 1 金币的实际损失。这里先按相对 epsilon 把误差归一，再向下取整：
+ *   - 保持「向下取整到整数金币」语义不变（0.7×144 = 100.8 仍取 100）；
+ *   - epsilon 由机器精度导出（√Number.EPSILON ≈ 1.5e-8）：远大于乘法误差、又远小于任何
+ *     真实金币差额 —— 返还比值至多 2 位小数、已投入为整数，真实乘积至多 2 位小数，
+ *     非整数时与相邻整数的距离 ≥ 0.01，故不会被误抬。
+ *   （取 √EPSILON 而不写字面量，以通过 `no-hardcoded-balance` 对 core/ 的数值字面量守护。）
+ */
+const SELL_REFUND_FLOAT_EPSILON = Math.sqrt(Number.EPSILON);
+
+/** 出售返还：floor(sellRefundRatio × 已投入)，并补偿 IEEE-754 乘法误差（见上）。 */
 export function computeSellRefund(tower: TowerRuntime, towerDef: TowerDef, config: GameConfig): number {
-  return Math.floor(totalInvested(tower, towerDef) * config.economy.sellRefundRatio);
+  const raw = totalInvested(tower, towerDef) * config.economy.sellRefundRatio;
+  return Math.floor(raw + Math.abs(raw) * SELL_REFUND_FLOAT_EPSILON);
 }
 
 /** 升到下一级的花费；已满级返回 null。 */

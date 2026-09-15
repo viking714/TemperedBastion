@@ -95,14 +95,27 @@ describe('economy: 升级费与出售返还', () => {
     );
   });
 
-  it('出售返还 = floor(sellRefundRatio × 已投入)，且为整数', () => {
-    const ratio = config.economy.sellRefundRatio;
-    for (const level of [1, 2, 3]) {
-      const tower = towerAt(level);
-      const expected = Math.floor(totalInvested(tower, arrow) * ratio);
-      const refund = computeSellRefund(tower, arrow, config);
-      expect(refund).toBe(expected);
-      expect(Number.isInteger(refund)).toBe(true);
+  it('出售返还口径：三塔 × 三级共 9 组的精确值（含精确整数场景 35 / 63 / 119）', () => {
+    // 返还 = sellRefundRatio × 已投入，向下取整；数学上恰为整数的场景必须返回精确值
+    // （0.7×90 = 63、0.7×170 = 119，不得因 90×0.7 = 62.999… 被 floor 成 62 / 118）。
+    const cases: Array<[string, number, number]> = [
+      // [towerId, level, 期望返还]
+      ['arrow', 1, 35], //  0.7 × 50
+      ['arrow', 2, 63], //  0.7 × (50+40)        ← 精确整数
+      ['arrow', 3, 119], // 0.7 × (50+40+80)     ← 精确整数
+      ['cannon', 1, 56], //  0.7 × 80
+      ['cannon', 2, 100], // floor(0.7 × 144 = 100.8)
+      ['cannon', 3, 190], // floor(0.7 × 272 = 190.4)
+      ['frost', 1, 42], //   0.7 × 60
+      ['frost', 2, 75], //  floor(0.7 × 108 = 75.6)
+      ['frost', 3, 142], // floor(0.7 × 204 = 142.8)
+    ];
+    for (const [towerId, level, expected] of cases) {
+      const def = requireTower(config, towerId);
+      const tower: TowerRuntime = { col: 0, row: 0, towerId, level, targeting: def.targeting, cooldownMs: 0 };
+      const refund = computeSellRefund(tower, def, config);
+      expect(refund, `${towerId} L${level} 返还`).toBe(expected);
+      expect(Number.isInteger(refund), `${towerId} L${level} 返还应为整数`).toBe(true);
     }
   });
 
@@ -143,9 +156,8 @@ describe('economy: 经命令入口的完整结算', () => {
     expect(sold.ok).toBe(true);
     state = sold.state;
     expect(state.towers).toHaveLength(0);
-    expect(state.gold).toBe(
-      goldBeforeSell + Math.floor((arrow.cost + arrow.upgradeCostToNext[0]) * config.economy.sellRefundRatio),
-    );
+    // 返还 = 0.7 × (50+40) = 63（精确整数；此前因浮点误差落成 62，见 AC-5 缺陷）
+    expect(state.gold).toBe(goldBeforeSell + 63);
 
     // 出售后格子恢复可建造
     const rebuilt = applyCommand(state, { type: 'BUILD_TOWER', col: tile.col, row: tile.row, towerId: arrow.id }, config);

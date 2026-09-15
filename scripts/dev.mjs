@@ -6,7 +6,8 @@
  *   1. 解析 Python 解释器（优先 TD_PYTHON，其次仓库内 .venv，再次任务信封提供的 venv，最后 PATH 上的 python）
  *   2. 若 client/node_modules 缺失，自动执行 npm install（保证「真正一键」）
  *   3. 并发拉起后端 uvicorn(:8000) 与前端 vite(:5173)，输出带前缀
- *   4. 任一子进程退出 / Ctrl+C → 一并回收（Windows 下用 taskkill /T 杀进程树）
+ *   4. 任一子进程退出 / Ctrl+C → 一并回收（Windows 下用 taskkill /T 杀进程树；
+ *      并额外回收 uvicorn --reload 派生的孙进程，避免父进程先退时端口残留）
  *
  * 用法：
  *   npm run dev                # 前后端一起起
@@ -94,7 +95,21 @@ function ensureClientDeps() {
 
 const children = [];
 
-function pipeWithPrefix(child, tag) {
+/**
+ * uvicorn --reload 会派生「reloader → worker」两层子进程。Windows 上「杀父不杀孙」，
+ * 且 Ctrl+C 会把 CTRL_C_EVENT 广播给同控制台的所有进程（父进程可能先于我们的回收动作而退出）。
+ * 故从后端启动日志里记录这两个 PID，退出时按 PID 直接回收，杜绝 8000 端口残留
+ * —— 残留会让用户第二次 `npm run dev` 直接撞端口冲突（AC-1 可用性缺陷）。
+ */
+const backendPids = new Set();
+const BACKEND_PID_RE = /Started (?:reloader|server) process \[(\d+)\]/;
+
+function trackBackendLine(line) {
+  const match = BACKEND_PID_RE.exec(line);
+  if (match) backendPids.add(Number(match[1]));
+}
+
+function pipeWithPrefix(child, tag, onLine) {
   const forward = (stream, isErr) => {
     let buffer = '';
     stream.setEncoding('utf8');
@@ -105,6 +120,7 @@ function pipeWithPrefix(child, tag) {
         const line = buffer.slice(0, idx);
         buffer = buffer.slice(idx + 1);
         (isErr ? process.stderr : process.stdout).write(`[${tag}] ${line}\n`);
+        if (onLine) onLine(line);
         idx = buffer.indexOf('\n');
       }
     });
@@ -116,10 +132,15 @@ function pipeWithPrefix(child, tag) {
   forward(child.stderr, true);
 }
 
+/**
+ * 树级回收单个子进程。
+ * 刻意**不**因「直接子进程已退出」而提前返回：Ctrl+C / 外部 kill 可能先把父进程干掉，
+ * 此时 taskkill 找不到父进程，需依赖 killTrackedBackendPids() 兜底回收孙进程。
+ */
 function killTree(child) {
-  if (!child || child.exitCode !== null || child.killed) return;
+  if (!child || child.pid == null) return;
   if (IS_WIN) {
-    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', shell: true });
+    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
   } else {
     try {
       child.kill('SIGTERM');
@@ -129,14 +150,27 @@ function killTree(child) {
   }
 }
 
+/** 回收记录到的 uvicorn reloader / worker（父进程先退、taskkill /T 触达不到时的兜底）。 */
+function killTrackedBackendPids() {
+  if (!IS_WIN) return;
+  for (const pid of backendPids) {
+    spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore' });
+  }
+}
+
+let shuttingDown = false;
+
 function shutdown(code) {
+  if (shuttingDown) return; // 幂等：Ctrl+C 与子进程 exit 可能几乎同时触发
+  shuttingDown = true;
   for (const child of children) killTree(child);
+  killTrackedBackendPids();
   process.exit(code);
 }
 
-function registerChild(child, tag, name) {
+function registerChild(child, tag, name, onLine) {
   children.push(child);
-  pipeWithPrefix(child, tag);
+  pipeWithPrefix(child, tag, onLine);
   child.on('exit', (code, signal) => {
     log(tag, `${name} 退出（code=${code ?? 'null'} signal=${signal ?? 'null'}），正在回收其余进程…`);
     shutdown(code ?? 1);
@@ -171,7 +205,7 @@ if (!CLIENT_ONLY) {
     env: { ...process.env, PYTHONUNBUFFERED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  registerChild(backend, 'backend', '后端 uvicorn');
+  registerChild(backend, 'backend', '后端 uvicorn', trackBackendLine);
 }
 
 if (!SERVER_ONLY) {
@@ -190,6 +224,11 @@ process.on('SIGINT', () => {
   shutdown(0);
 });
 process.on('SIGTERM', () => shutdown(0));
+// Windows 下 Ctrl+Break（以及程序化 CTRL_BREAK_EVENT）对应的信号，等价走同一关闭路径。
+process.on('SIGBREAK', () => {
+  log('dev', '收到 SIGBREAK，正在关闭…');
+  shutdown(0);
+});
 
 setTimeout(() => {
   if (!CLIENT_ONLY) log('dev', `后端就绪 → http://127.0.0.1:${BACKEND_PORT}（健康检查 /api/health，配置 /api/config）`);

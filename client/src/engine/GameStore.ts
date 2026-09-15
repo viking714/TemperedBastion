@@ -11,6 +11,7 @@
 import {
   MS_PER_SEC,
   applyCommand,
+  computeSellRefund,
   createGame,
   findTowerAt,
   fromSavePayload,
@@ -333,9 +334,8 @@ export class GameStore {
     const upgradeCost =
       upgradeIndex >= 0 && upgradeIndex < def.upgradeCostToNext.length ? def.upgradeCostToNext[upgradeIndex] : null;
 
-    let invested = def.cost;
-    for (let i = 0; i < tower.level - 1 && i < def.upgradeCostToNext.length; i++) invested += def.upgradeCostToNext[i];
-    const sellRefund = Math.floor(invested * this.config.economy.sellRefundRatio);
+    // 与结算路径共用同一实现，避免展示值与实际返还值出现取整口径漂移（曾各自 floor 浮点乘积）。
+    const sellRefund = computeSellRefund(tower, def, this.config);
 
     return {
       col: tile.col,

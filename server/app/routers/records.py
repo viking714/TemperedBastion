@@ -36,7 +36,8 @@ def create_record(payload: RecordCreate, db: Annotated[Session, Depends(get_db)]
         result=payload.result,
         wave_reached=int(payload.waveReached),
         lives_remaining=int(payload.livesRemaining),
-        elapsed_ms=int(round(float(payload.elapsedMs))),
+        # 保留毫秒精度（REAL 列）：与 save 端同物理量保持一致，读回不被截断。
+        elapsed_ms=float(payload.elapsedMs),
         config_version=payload.configVersion,
         created_at=now_iso(),
     )

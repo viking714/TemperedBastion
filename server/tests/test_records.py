@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from sqlalchemy import func, select
 
 from app.db import get_session_factory
@@ -33,11 +34,23 @@ def test_post_creates_record(client, clean_tables):
     assert isinstance(body["createdAt"], str) and body["createdAt"]
 
 
-def test_fractional_elapsed_is_normalized_to_integer_ms(client, clean_tables):
-    """用时列按 add.json 的数据模型是 INTEGER；前端传小数毫秒时四舍五入落库。"""
+def test_fractional_elapsed_is_preserved_as_real(client, clean_tables):
+    """用时列改为 REAL（一致性与 save_state 端对齐）；小数毫秒必须原样保留、不被截断。"""
     response = client.post("/api/records", json=make_record(elapsedMs=245000.6))
     assert response.status_code == 201
-    assert response.json()["elapsedMs"] == 245001
+    assert response.json()["elapsedMs"] == pytest.approx(245000.6)
+
+    # 列表读回同样不截断
+    body = client.get("/api/records").json()
+    assert body["total"] == 1
+    assert body["items"][0]["elapsedMs"] == pytest.approx(245000.6)
+
+
+def test_integer_elapsed_stays_integral(client, clean_tables):
+    """整数值毫秒经 REAL 列往返后仍是同一个整数（无 245000.00000001 之类的漂移）。"""
+    response = client.post("/api/records", json=make_record(elapsedMs=245000))
+    assert response.status_code == 201
+    assert response.json()["elapsedMs"] == 245000
 
 
 def test_post_invalid_result_returns_422(client, clean_tables):

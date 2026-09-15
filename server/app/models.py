@@ -1,11 +1,12 @@
 """SQLAlchemy ORM 模型：level_config / save_state / record。
 
-列定义严格对齐 add.json.data_model.sqlite_tables。三表均无用户维度（单机本地、无账号）。
+列定义对齐 add.json.data_model.sqlite_tables；唯一偏差：``record.elapsed_ms`` 由 INTEGER
+改为 REAL（理由见 ``Record`` 文档串）。三表均无用户维度（单机本地、无账号）。
 """
 
 from __future__ import annotations
 
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -43,7 +44,13 @@ class SaveState(Base):
 
 
 class Record(Base):
-    """战绩记录（每局结束一条）。"""
+    """战绩记录（每局结束一条）。
+
+    说明：``elapsed_ms`` 存 **REAL**（浮点）而非 ADD ``data_model`` 写的 INTEGER ——
+    与 ``save_state`` 端的同物理量（已游玩时长）保持一致，避免同一 API 面两端类型不一致
+    （模拟为 1/60s 固定步长，毫秒为 16.666… 的整数倍，整型列会把小数毫秒截断）。
+    SQLite 列类型是动态的，既有数据不受影响。
+    """
 
     __tablename__ = "record"
 
@@ -51,6 +58,6 @@ class Record(Base):
     result: Mapped[str] = mapped_column(String(16), nullable=False)
     wave_reached: Mapped[int] = mapped_column(Integer, nullable=False)
     lives_remaining: Mapped[int] = mapped_column(Integer, nullable=False)
-    elapsed_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    elapsed_ms: Mapped[float] = mapped_column(Float, nullable=False)
     config_version: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
