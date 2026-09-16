@@ -210,7 +210,42 @@ export const savePayloadSchema = z
   .strict();
 
 export const saveWriteResponseSchema = z
-  .object({ ok: z.boolean(), slot: positiveInt, updatedAt: z.string() })
+  .object({ ok: z.boolean(), updatedAt: z.string() })
+  .strict();
+
+// ---------------------------------------------------------------------------
+// 认证（注册 / 登录 / 会话）
+// ---------------------------------------------------------------------------
+
+const usernamePattern = /^[A-Za-z0-9_\u4e00-\u9fff-]+$/;
+
+export const userSchema = z
+  .object({
+    id: positiveInt,
+    username: z.string().min(1).max(20),
+    createdAt: z.string().min(1),
+  })
+  .strict();
+
+export const credentialsSchema = z
+  .object({
+    username: z.string().min(2).max(20).regex(usernamePattern, '用户名仅支持中英文、数字、下划线或连字符'),
+    password: z.string().min(6).max(72),
+  })
+  .strict();
+
+export const okResponseSchema = z.object({ ok: z.boolean() }).strict();
+
+// ---------------------------------------------------------------------------
+// 自动存档（GET/PUT /api/autosave）
+// ---------------------------------------------------------------------------
+
+export const autoSaveOutSchema = z
+  .object({ payload: savePayloadSchema, totalLevels: positiveInt })
+  .strict();
+
+export const autoSaveWriteResponseSchema = z
+  .object({ ok: z.boolean(), updatedAt: z.string() })
   .strict();
 
 export const recordSchema = z
@@ -257,6 +292,9 @@ export type EnemyDef = z.infer<typeof enemyDefSchema>;
 export type WaveDef = z.infer<typeof waveDefSchema>;
 export type SavePayload = z.infer<typeof savePayloadSchema>;
 export type SaveWriteResponse = z.infer<typeof saveWriteResponseSchema>;
+export type AuthUser = z.infer<typeof userSchema>;
+export type AutoSaveOut = z.infer<typeof autoSaveOutSchema>;
+export type AutoSaveWriteResponse = z.infer<typeof autoSaveWriteResponseSchema>;
 export type GameRecord = z.infer<typeof recordSchema>;
 export type RecordList = z.infer<typeof recordListSchema>;
 export type RecordCreate = z.infer<typeof recordCreateSchema>;

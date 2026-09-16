@@ -1,7 +1,7 @@
 # 《淬火壁垒》（Tempered Bastion） · Canvas 2D Tower Defense
 
 一个**全栈网页塔防小游戏**：React + TypeScript + Vite 前端，自建 Canvas 2D 渲染（不依赖任何游戏引擎）；
-FastAPI + SQLAlchemy + SQLite 后端提供**关卡配置**与**存档 / 战绩**接口。
+FastAPI + SQLAlchemy + SQLite 后端提供**关卡配置**、**账号（注册 / 登录）**与**自动存档 / 战绩**接口。
 
 > 所有战斗数值（网格、路径、塔、敌人、波次、经济、规则、关卡）的**唯一真源**是
 > `server/config/level.json`。前端不硬编码任何战斗数值——改这个文件并刷新页面即生效，无需重启后端。
@@ -80,7 +80,7 @@ npm run setup          # 只确保依赖就绪，不启服务
 
 目标：守住基地清空当前关卡全部波次即过关；生命归零则失败。两种结局都会自动登记一条战绩记录。
 
-**战役模式**：共 **10 个关卡**（关卡数据在 `server/config/level.json` 的 `levels[]`，热更新即生效）。每过一关地图布局更换、难度递增（波数 5→10、敌人数量与血量成长逐关提升）；胜利后点「进入第 N+1 关」继续，通关第 10 关即战役通关；失败可「重试本关」。`?level=N` 可直接从第 N 关开始（调试 / 分享用）。
+**战役模式**：共 **10 个关卡**（关卡数据在 `server/config/level.json` 的 `levels[]`，热更新即生效）。每过一关地图布局更换、难度递增（波数 5→10、敌人数量与血量成长逐关提升）；胜利后点「进入第 N+1 关」继续，通关第 10 关即战役通关；失败可「重试本关」。**账号与自动保存**：进入游戏需注册 / 登录（进度按账号隔离）；进度每 5 秒 + 关键节点（波次推进 / 关卡切换 / 页面隐藏）自动保存，关闭页面后再打开会从上次进度继续。手动存档已取消，无需任何手动操作。
 
 ---
 
@@ -96,12 +96,13 @@ repo/
 │   ├── app/
 │   │   ├── main.py              FastAPI 实例、CORS、异常处理器（统一错误信封）、启动钩子
 │   │   ├── db.py                SQLite engine / SessionLocal / Base（TD_DB_PATH 可覆盖）
-│   │   ├── models.py            LevelConfig / SaveState / Record
+│   │   ├── models.py            用户 / 会话 / 自动存档 / 战绩 / 配置审计 等 ORM
 │   │   ├── schemas.py           Pydantic 契约（extra="forbid"）
 │   │   ├── config_loader.py     mtime+size 缓存热读 + sha256 版本哈希 + 校验
 │   │   ├── seed.py              启动时把配置版本同步进审计表
-│   │   └── routers/             health / config / saves / records
-│   └── tests/                   pytest：契约形状、热读生效、存档往返、战绩排序
+│   │   ├── auth.py              口令哈希（PBKDF2）+ 会话令牌 + require_user 依赖
+│   │   └── routers/             health / config / auth / autosave / records
+│   └── tests/                   pytest：契约形状、热读生效、认证与隔离、自动存档往返、战绩排序
 └── client/                      前端（React + TS + Vite）
     ├── vite.config.ts           dev proxy: /api → 127.0.0.1:8000
     ├── vitest.config.ts         environment: node（纯逻辑内核测试，不引 jsdom）
@@ -119,7 +120,7 @@ repo/
         │   ├── overlay.ts       塔位合法/非法悬停 + 射程预览
         │   └── sprites/         绘制原语（精灵素材优先，程序化绘制兜底）
         ├── ui/                  Hud / BuildPanel / TowerDetail / WaveControls /
-        │                        SavePanel / RecordsPanel / EndGameDialog / LoadingView / ErrorView
+        │                        AuthView（登录/注册） / RecordsPanel / EndGameDialog / LoadingView / ErrorView
         │                        primitives/ Button·Panel·Tooltip·Modal（语义化 + 令牌 + a11y）
         ├── api/                 REST 适配（统一错误信封归一化 + zod 校验）
         ├── config/              ConfigProvider（三态）+ schema.ts（zod）
@@ -227,9 +228,12 @@ python -m pytest -q           # 23 passed
 ```bash
 npm run dev
 curl -s http://127.0.0.1:8000/api/health     # {"status":"ok"}
-curl -s http://127.0.0.1:8000/api/config     # 完整配置（含 version）
-curl -s http://127.0.0.1:8000/api/save/1     # 无存档 → 404 SAVE_NOT_FOUND
-curl -s http://127.0.0.1:8000/api/records    # {"total":0,"items":[]}
+curl -s http://127.0.0.1:8000/api/config     # 完整配置（含 version / campaign）
+curl -s http://127.0.0.1:8000/api/autosave   # 未登录 → 401 UNAUTHENTICATED
+curl -s -X POST http://127.0.0.1:8000/api/auth/register \
+  -H 'content-type: application/json' \
+  -d '{"username":"demo","password":"secret-123"}' -c /tmp/jar  # 注册即登录（Cookie）
+curl -s -b /tmp/jar http://127.0.0.1:8000/api/records  # {"total":0,"items":[]}（按账号隔离）
 ```
 
 ### 接口一览
@@ -237,13 +241,19 @@ curl -s http://127.0.0.1:8000/api/records    # {"total":0,"items":[]}
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/health` | 健康检查 |
-| GET | `/api/config` | 关卡配置（唯一真源，热读） |
-| GET | `/api/save/{slot}` | 读档（slot ≥ 1；无档 → 404） |
-| PUT | `/api/save/{slot}` | 写档（覆盖该槽位，单行 upsert） |
-| GET | `/api/records?limit=1..200` | 战绩列表（newest first，含 `total`） |
-| POST | `/api/records` | 登记一条战绩（201） |
+| GET | `/api/config?level=N` | 关卡配置（唯一真源，热读；缺省第 1 关） |
+| POST | `/api/auth/register` | 注册（自动登录，下发 HttpOnly 会话 Cookie；用户名唯一，不区分大小写） |
+| POST | `/api/auth/login` | 登录 |
+| POST | `/api/auth/logout` | 登出（清会话） |
+| GET | `/api/auth/me` | 当前用户（未登录 → 401） |
+| GET | `/api/autosave` | 读取自动存档（每账号一行；无档 → 404）**需登录** |
+| PUT | `/api/autosave` | 写入自动存档（单行 upsert，随玩随存）**需登录** |
+| GET | `/api/records?limit=1..200` | 战绩列表（newest first，含 `total`）**需登录** |
+| POST | `/api/records` | 登记一条战绩（201）**需登录** |
 
 错误统一信封：`{"error":{"code":"…","message":"…"}}`。
+
+多用户化迁移：旧版本（无账号时代）的战绩会由**首位注册用户**继承；旧手动存档槽保留在库中但不再使用。
 
 ---
 
@@ -258,5 +268,6 @@ curl -s http://127.0.0.1:8000/api/records    # {"total":0,"items":[]}
   （`perf.stress.test.ts` 只覆盖逻辑侧预算，浏览器帧时需在参考环境实测）。
 - 索敌是每塔对范围内敌人的平方距离早退（O(T×E)=1200 次比较/步），**未引入空间哈希**；
   规模翻倍时需要（已列为技术债）。
-- 存档仅单槽位读写（schema 支持多槽位，前端默认槽位 1）。
-- SQLite 单文件存储，无并发写保护——单机单玩家场景下够用。
+- 手动存档槽已移除（改为自动保存）；旧的 `save_state` 表保留在库中仅作历史数据。
+- SQLite 单文件存储，无并发写保护——单机 / 小规模多用户场景下够用。
+- 注册无邀请码与速率限制：公网部署意味着知道链接的人都能注册（如需限制可加白名单）。

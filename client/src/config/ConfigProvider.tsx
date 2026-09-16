@@ -7,8 +7,8 @@
  * 数值唯一真源是后端 `server/config/level.json`，前端不兜底、不内置默认值：
  * 拉不到就直接报错并提供重试，避免"用了错的数值还以为是对的"。
  *
- * 多关卡：`loadLevel(n)` 切换关卡（重新拉取对应配置，切换瞬间显示 LoadingView）；
- * URL 上的 `?level=N` 可作为初始关卡（方便测试与分享直达某关）。
+ * 多关卡：`loadLevel(n)` 切换关卡（重新拉取对应配置，切换瞬间显示 LoadingView）。
+ * 初始关卡由上层（Session 恢复流程 / URL ?level=N）通过 `initialLevel` 注入。
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -32,18 +32,16 @@ export interface ConfigContextValue {
 
 const ConfigContext = createContext<ConfigContextValue | null>(null);
 
-/** URL ?level=N（正整数）作为初始关卡；非法值回退到第 1 关。 */
-function initialLevelFromUrl(): number {
-  if (typeof window === 'undefined') return 1;
-  const raw = new URLSearchParams(window.location.search).get('level');
-  const parsed = raw === null ? Number.NaN : Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
-}
-
-export function ConfigProvider({ children }: { children: ReactNode }): JSX.Element {
+export function ConfigProvider({
+  children,
+  initialLevel = 1,
+}: {
+  children: ReactNode;
+  initialLevel?: number;
+}): JSX.Element {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<ConfigState>({ status: 'loading' });
-  const requestedLevel = useRef(initialLevelFromUrl());
+  const requestedLevel = useRef(initialLevel);
 
   useEffect(() => {
     let cancelled = false;

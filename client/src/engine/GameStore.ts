@@ -499,12 +499,11 @@ export class GameStore {
   // 存档 / 读档（AC-4）
   // -------------------------------------------------------------------------
 
-  createSavePayload(slot: number): SavePayload {
+  createSavePayload(): SavePayload {
     return toSavePayload(this.state, {
       level: this.config.campaign.level,
       configVersion: this.config.version,
       savedAt: new Date().toISOString(),
-      slot,
     });
   }
 

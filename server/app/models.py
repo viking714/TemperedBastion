@@ -57,8 +57,44 @@ class Record(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     result: Mapped[str] = mapped_column(String(16), nullable=False)
     level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # 多用户化后归属的玩家；v1 时期的旧行为 NULL（由首位注册用户继承，见 routers/auth.py）。
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     wave_reached: Mapped[int] = mapped_column(Integer, nullable=False)
     lives_remaining: Mapped[int] = mapped_column(Integer, nullable=False)
     elapsed_ms: Mapped[float] = mapped_column(Float, nullable=False)
     config_version: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class User(Base):
+    """玩家账号（注册即创建；口令以 PBKDF2 加盐哈希存储，明文不落库）。"""
+
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class AuthSession(Base):
+    """登录会话：服务端令牌表 + HttpOnly Cookie（token 即主键）。"""
+
+    __tablename__ = "auth_session"
+
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    expires_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class AutoSave(Base):
+    """自动存档：每个用户一行（取代旧的手动多槽存档），随玩随存。"""
+
+    __tablename__ = "autosave"
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    config_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    state_json: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)

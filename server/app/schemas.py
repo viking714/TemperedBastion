@@ -171,6 +171,32 @@ class ConfigResponse(_Strict):
 
 
 # --------------------------------------------------------------------------------------
+# 认证（注册 / 登录 / 会话）
+# --------------------------------------------------------------------------------------
+
+
+class UserOut(_Strict):
+    id: int = Field(ge=1)
+    username: str = Field(min_length=1)
+    createdAt: str
+
+
+class RegisterRequest(_Strict):
+    # 允许中英文、数字、下划线与连字符；长度 2~20。
+    username: str = Field(min_length=2, max_length=20, pattern=r"^[A-Za-z0-9_\u4e00-\u9fff-]+$")
+    password: str = Field(min_length=6, max_length=72)
+
+
+class LoginRequest(_Strict):
+    username: str = Field(min_length=1, max_length=20)
+    password: str = Field(min_length=1, max_length=72)
+
+
+class OkResponse(_Strict):
+    ok: bool
+
+
+# --------------------------------------------------------------------------------------
 # 存档 payload（GET/PUT /api/save/{slot}）
 # --------------------------------------------------------------------------------------
 
@@ -257,10 +283,16 @@ class SavePayload(_Strict):
     nextProjectileId: int = Field(ge=0)
 
 
-class SaveWriteResponse(_Strict):
+class AutoSaveWriteResponse(_Strict):
     ok: bool
-    slot: int
     updatedAt: str
+
+
+class AutoSaveOut(_Strict):
+    """GET /api/autosave 的响应：快照 + 战役总关卡数（供客户端决定续关位置）。"""
+
+    payload: SavePayload
+    totalLevels: int = Field(ge=1)
 
 
 # --------------------------------------------------------------------------------------
@@ -293,6 +325,8 @@ class HealthOut(_Strict):
 
 __all__ = [
     "ApiError",
+    "AutoSaveOut",
+    "AutoSaveWriteResponse",
     "CampaignConfig",
     "CampaignInfo",
     "ConfigResponse",
@@ -303,18 +337,21 @@ __all__ = [
     "GridConfig",
     "HealthOut",
     "LevelEntry",
+    "LoginRequest",
     "MapConfig",
+    "OkResponse",
     "RecordCreate",
     "RecordListOut",
     "RecordOut",
+    "RegisterRequest",
     "RulesConfig",
     "SavePayload",
-    "SaveWriteResponse",
     "SpawnGroupProgress",
     "SpawnProgressSnapshot",
     "TowerDef",
     "TowerLevelStats",
     "TowerSnapshot",
+    "UserOut",
     "ValidationError",
     "WaveDef",
     "WaveGroup",

@@ -91,6 +91,29 @@ export function skipIfBackendDown(ctx: { skip: () => void }, ready: boolean, bas
   ctx.skip();
 }
 
+/** 注册一个 QA 专用账号并返回会话 Cookie（`td_session=...`，用于需登录的接口）。 */
+export async function registerQaUser(base: string, username: string, password = 'qa-secret-123'): Promise<string> {
+  const response = await fetch(`${base}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const setCookies = (response.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? [];
+  const raw = setCookies[0] ?? response.headers.get('set-cookie') ?? '';
+  const cookie = raw.split(';')[0];
+  if (response.status !== 201 || !cookie) {
+    throw new Error(`QA 注册失败：status=${response.status} cookie=${cookie ? '有' : '无'}`);
+  }
+  return cookie;
+}
+
+/** 生成合法且几乎必定唯一的 QA 用户名（≤20 字符，含连字符）。 */
+export function uniqueQaUsername(prefix: string): string {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `qa-${prefix}-${stamp}-${rand}`.slice(0, 20);
+}
+
 /** 深比较（用于存档往返逐字段断言），返回差异路径列表。 */
 export function deepDiff(a: unknown, b: unknown, path = '$'): string[] {
   if (a === b) return [];

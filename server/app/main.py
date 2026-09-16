@@ -12,8 +12,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import seed
 from .db import get_session_factory, init_db
+from .routers import auth as auth_router
+from .routers import autosave as autosave_router
 from .routers import config as config_router
-from .routers import health, records, saves
+from .routers import health, records
 from .schemas import ApiError
 
 ALLOWED_ORIGINS = [
@@ -50,8 +52,9 @@ def create_app() -> FastAPI:
     )
 
     application.include_router(health.router, prefix="/api")
+    application.include_router(auth_router.router, prefix="/api")
     application.include_router(config_router.router, prefix="/api")
-    application.include_router(saves.router, prefix="/api")
+    application.include_router(autosave_router.router, prefix="/api")
     application.include_router(records.router, prefix="/api")
 
     return application

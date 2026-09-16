@@ -1,5 +1,5 @@
 /**
- * HUD 顶栏：金币 / 生命 / 波次进度 / 场上敌人 / 状态 / 倍速 / 用时 + 全局入口。
+ * HUD 顶栏：金币 / 生命 / 波次进度 / 场上敌人 / 状态 / 倍速 / 用时 + 账号与自动保存。
  *
  * 数值全部来自 GameStore 的**投影快照**（`useSyncExternalStore`）——
  * 只有快照签名变化才重渲染，因此 60Hz 的模拟推进不会拖垮 React。
@@ -10,13 +10,21 @@ import type { HudSnapshot } from '../engine/GameStore';
 import { Button } from './primitives';
 import { WAVE_STATE_LABEL, WAVE_STATE_TONE, formatSeconds } from './labels';
 
+/** 自动保存状态语气（HUD 角标配色）。 */
+export type AutoSaveTone = 'idle' | 'busy' | 'ok' | 'error';
+
 export interface HudProps {
   snapshot: HudSnapshot;
   /** 开发期 FPS 文本挂载点（生产模式传 null）。 */
   fpsRef: RefObject<HTMLSpanElement> | null;
   showFps: boolean;
-  onOpenSaves: () => void;
+  /** 当前登录用户名（多用户隔离的可见标识）。 */
+  username: string;
+  onLogout: () => void;
   onOpenRecords: () => void;
+  /** 自动保存状态文案（如「已自动保存 20:31:05」）。 */
+  autoSaveText: string;
+  autoSaveTone: AutoSaveTone;
 }
 
 interface StatProps {
@@ -34,7 +42,16 @@ function Stat({ label, value, tone }: StatProps): JSX.Element {
   );
 }
 
-export function Hud({ snapshot, fpsRef, showFps, onOpenSaves, onOpenRecords }: HudProps): JSX.Element {
+export function Hud({
+  snapshot,
+  fpsRef,
+  showFps,
+  username,
+  onLogout,
+  onOpenRecords,
+  autoSaveText,
+  autoSaveTone,
+}: HudProps): JSX.Element {
   const tone = WAVE_STATE_TONE[snapshot.waveState];
   const waveValue =
     snapshot.currentWave > 0
@@ -71,16 +88,26 @@ export function Hud({ snapshot, fpsRef, showFps, onOpenSaves, onOpenRecords }: H
         <span className={`td-chip td-chip--${tone}`} role="status">
           {statusText}
         </span>
+        <span
+          className={`td-autosave td-autosave--${autoSaveTone}`}
+          role="status"
+          title="进度会自动保存到你的账号（无需手动操作）"
+        >
+          {autoSaveText}
+        </span>
         {showFps && fpsRef ? (
           <span className="td-fps" ref={fpsRef} aria-hidden="true">
             -- FPS
           </span>
         ) : null}
-        <Button variant="tonal" onClick={onOpenSaves}>
-          存档
-        </Button>
+        <span className="td-chip td-chip--user" title="当前账号（进度与战绩按账号隔离）">
+          {username}
+        </span>
         <Button variant="tonal" onClick={onOpenRecords}>
           战绩
+        </Button>
+        <Button variant="text" onClick={onLogout}>
+          退出
         </Button>
       </div>
     </header>
