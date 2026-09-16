@@ -113,8 +113,9 @@ code {
 .td-stage {
   position: relative;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
   min-width: 0;
 }
 
@@ -125,7 +126,12 @@ code {
   border: var(--border-width) solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-md);
   box-shadow: var(--elevation-1);
-  touch-action: manipulation;
+  /* 触屏：棋盘上的手势完全交给游戏处理，不触发页面滚动/缩放/长按菜单 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .td-sidebar {
@@ -1104,6 +1110,103 @@ code {
     /* grid 的 `auto` 行同样会把带 overflow:hidden 的面板压到 0（与 flex 同理），
        锁成 max-content 后面板保持自然高度、溢出交给滚动区滚动。 */
     grid-auto-rows: max-content;
+  }
+}
+
+/* ==========================================================================
+   触屏与手机适配
+   ========================================================================== */
+
+/* 触屏专用的「取消选择」浮钮：默认隐藏，触屏设备显示（桌面用右键 / Esc）。 */
+.td-stage-cancel {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 1;
+  display: none;
+}
+
+/* 触屏操作说明：默认隐藏。 */
+.td-touch-tip {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  /* 键盘快捷键 / 鼠标操作提示对触屏无意义（触屏指引见棋盘下方 td-touch-tip） */
+  .td-hint {
+    display: none;
+  }
+
+  /* 触控目标加大到约 44px（32 + 12） */
+  .td-btn {
+    min-height: calc(var(--space-8) + var(--space-3));
+  }
+
+  .td-segmented__item {
+    min-height: calc(var(--space-8) + var(--space-3));
+  }
+
+  .td-stage-cancel {
+    display: inline-flex;
+  }
+
+  .td-touch-tip {
+    display: block;
+    margin-top: var(--space-2);
+    text-align: center;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--md-sys-typescale-label-medium);
+  }
+}
+
+/* 窄屏手机（≤600px）或触屏矮屏（横屏手机兜底）：整页自然滚动，
+   内容完整可达——不再把面板压进一屏高度导致截断。 */
+@media (max-width: 600px), ((max-height: 500px) and (pointer: coarse)) {
+  .td-app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .td-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    /* 全面屏底部安全区，避免控件紧贴手势条 */
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  }
+
+  /* 侧栏并入正常文档流：取消嵌套滚动，建塔面板完整展示 */
+  .td-sidebar {
+    overflow: visible;
+  }
+
+  .td-sidebar__scroll {
+    display: flex;
+    overflow: visible;
+  }
+
+  /* HUD 精简，腾出垂直空间给棋盘与面板 */
+  .td-hud {
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .td-hud__subtitle {
+    display: none;
+  }
+
+  .td-hud__stats {
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .td-stat {
+    min-width: 0;
+  }
+
+  .td-hud__actions {
+    margin-left: auto;
   }
 }
 

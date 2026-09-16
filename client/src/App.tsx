@@ -247,6 +247,7 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
             aria-describedby="td-board-help"
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
+            onPointerCancel={handlePointerLeave}
             onPointerDown={handlePointerDown}
             onContextMenu={handleContextMenu}
           />
@@ -255,6 +256,18 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
             先在右侧建塔面板选择塔型，再点击棋盘空格建造；点击已建成的塔可以升级、出售或切换索敌策略。
             空格键开始波次，P 暂停，F / N 切换 2x 与 1x 速度，右键或 Esc 取消选择。
           </p>
+          <p className="td-touch-tip">
+            触屏：先点「建塔」选塔型 → 点棋盘建造；点已有塔查看/升级；点「✕ 取消选择」退出建塔模式。
+          </p>
+          {snapshot.buildTowerId !== null || snapshot.selected !== null ? (
+            <button
+              type="button"
+              className="td-btn td-btn--tonal td-stage-cancel"
+              onClick={() => store.clearSelection()}
+            >
+              ✕ 取消选择
+            </button>
+          ) : null}
           {snapshot.notice ? (
             <p className="td-toast" role="status">
               {snapshot.notice}
