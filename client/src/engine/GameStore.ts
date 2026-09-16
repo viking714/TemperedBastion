@@ -58,6 +58,9 @@ export interface SelectedTowerInfo {
 export interface HudSnapshot {
   gold: number;
   lives: number;
+  level: number;
+  levelName: string;
+  totalLevels: number;
   currentWave: number;
   totalWaves: number;
   remainingEnemies: number;
@@ -78,6 +81,9 @@ export interface HudSnapshot {
 
 export interface TerminalInfo {
   result: 'victory' | 'defeat';
+  level: number;
+  levelName: string;
+  totalLevels: number;
   waveReached: number;
   livesRemaining: number;
   elapsedMs: number;
@@ -123,6 +129,7 @@ function snapshotSignature(snapshot: HudSnapshot): string {
   return [
     snapshot.gold,
     snapshot.lives,
+    snapshot.level,
     snapshot.currentWave,
     snapshot.remainingEnemies,
     snapshot.waveState,
@@ -276,6 +283,9 @@ export class GameStore {
     const state = this.state;
     return {
       result: state.waveState === 'VICTORY' ? 'victory' : 'defeat',
+      level: this.config.campaign.level,
+      levelName: this.config.campaign.name,
+      totalLevels: this.config.campaign.totalLevels,
       waveReached: Math.max(state.currentWave, 1),
       livesRemaining: Math.max(state.lives, 0),
       elapsedMs: state.elapsedMs,
@@ -303,6 +313,9 @@ export class GameStore {
     return {
       gold: state.gold,
       lives: state.lives,
+      level: this.config.campaign.level,
+      levelName: this.config.campaign.name,
+      totalLevels: this.config.campaign.totalLevels,
       currentWave: state.currentWave,
       totalWaves: this.config.waves.length,
       remainingEnemies: state.enemies.length,
@@ -488,6 +501,7 @@ export class GameStore {
 
   createSavePayload(slot: number): SavePayload {
     return toSavePayload(this.state, {
+      level: this.config.campaign.level,
       configVersion: this.config.version,
       savedAt: new Date().toISOString(),
       slot,

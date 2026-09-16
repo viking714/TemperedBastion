@@ -12,7 +12,32 @@ export function loadRawConfig(): Record<string, unknown> {
 }
 
 export function loadConfig(): GameConfig {
-  return { ...loadRawConfig(), version: 'qa-config-hash' } as unknown as GameConfig;
+  return loadLevelConfig(1);
+}
+
+/** 读取 level.json（v2 多关卡）并合成指定关卡（与后端 compose 口径一致）。 */
+export function loadLevelConfig(level: number): GameConfig {
+  const raw = loadRawConfig() as {
+    grid: unknown;
+    canvas: unknown;
+    rules: unknown;
+    towers: unknown;
+    enemies: unknown;
+    levels: Array<{ id: number; name: string; map: unknown; economy: unknown; waves: unknown }>;
+  };
+  const entry = raw.levels.find((item) => item.id === level) ?? raw.levels[0];
+  return {
+    version: 'qa-config-hash',
+    campaign: { level: entry.id, name: entry.name, totalLevels: raw.levels.length },
+    grid: raw.grid,
+    canvas: raw.canvas,
+    map: entry.map,
+    economy: entry.economy,
+    rules: raw.rules,
+    towers: raw.towers,
+    enemies: raw.enemies,
+    waves: entry.waves,
+  } as unknown as GameConfig;
 }
 
 /** 高精度毫秒（模拟里出现 16.666… 的整数倍，浮点比较必须容差）。 */

@@ -100,7 +100,11 @@ function buildRealPayload(): KernelSavePayload {
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   for (let i = 0; i < 421; i++) s = step(s, SIM_DT, cfg);
-  const payload = toSavePayload(s, { configVersion: cfg.version, savedAt: new Date().toISOString() });
+  const payload = toSavePayload(s, {
+    level: cfg.campaign.level,
+    configVersion: cfg.version,
+    savedAt: new Date().toISOString(),
+  });
   if (payload.towers.length === 0 || payload.enemies.length === 0) {
     throw new Error(`构造前提不成立：towers=${payload.towers.length} enemies=${payload.enemies.length}`);
   }

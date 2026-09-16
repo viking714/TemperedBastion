@@ -18,6 +18,10 @@ const tileTuple = z.tuple([z.number().int(), z.number().int()]);
 export const targetingModeSchema = z.enum(['FIRST', 'LAST', 'STRONGEST', 'CLOSEST']);
 export const towerRoleSchema = z.enum(['single_target', 'splash', 'slow']);
 export const waveStateSchema = z.enum(['IDLE', 'PREP', 'SPAWNING', 'ACTIVE', 'VICTORY', 'DEFEAT']);
+export const campaignInfoSchema = z
+  .object({ level: positiveInt, name: z.string().min(1), totalLevels: positiveInt })
+  .strict();
+
 export const gameResultSchema = z.enum(['victory', 'defeat']);
 
 export const towerLevelStatsSchema = z
@@ -78,6 +82,7 @@ export const waveDefSchema = z
 export const configResponseSchema = z
   .object({
     version: z.string().min(1),
+    campaign: campaignInfoSchema,
     grid: z.object({ cols: positiveInt, rows: positiveInt, tileSizePx: positiveInt }).strict(),
     canvas: z.object({ logicWidthPx: positiveInt, logicHeightPx: positiveInt }).strict(),
     map: z
@@ -184,6 +189,7 @@ export const spawnProgressSnapshotSchema = z
 export const savePayloadSchema = z
   .object({
     slot: z.number().int().nullable().optional(),
+    level: positiveInt.default(1),
     configVersion: z.string().min(1),
     savedAt: z.string().min(1),
     elapsedMs: z.number().nonnegative(),
@@ -211,6 +217,7 @@ export const recordSchema = z
   .object({
     id: nonNegativeInt,
     result: gameResultSchema,
+    level: positiveInt,
     waveReached: z.number().int(),
     livesRemaining: z.number().int(),
     elapsedMs: z.number(),
@@ -224,6 +231,7 @@ export const recordListSchema = z.object({ total: nonNegativeInt, items: z.array
 export const recordCreateSchema = z
   .object({
     result: gameResultSchema,
+    level: positiveInt,
     waveReached: z.number().int().min(1),
     livesRemaining: z.number().int().nonnegative(),
     elapsedMs: z.number().nonnegative(),
@@ -242,6 +250,7 @@ export const healthSchema = z.object({ status: z.string() }).strict();
 // ---------------------------------------------------------------------------
 
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
+export type CampaignInfo = z.infer<typeof campaignInfoSchema>;
 export type TowerDef = z.infer<typeof towerDefSchema>;
 export type TowerLevelStats = z.infer<typeof towerLevelStatsSchema>;
 export type EnemyDef = z.infer<typeof enemyDefSchema>;

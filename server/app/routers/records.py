@@ -22,6 +22,7 @@ def _to_out(row: Record) -> RecordOut:
     return RecordOut(
         id=int(row.id),
         result=row.result,  # type: ignore[arg-type]
+        level=int(row.level),
         waveReached=int(row.wave_reached),
         livesRemaining=int(row.lives_remaining),
         elapsedMs=float(row.elapsed_ms),
@@ -34,6 +35,7 @@ def _to_out(row: Record) -> RecordOut:
 def create_record(payload: RecordCreate, db: Annotated[Session, Depends(get_db)]) -> RecordOut:
     row = Record(
         result=payload.result,
+        level=int(payload.level),
         wave_reached=int(payload.waveReached),
         lives_remaining=int(payload.livesRemaining),
         # 保留毫秒精度（REAL 列）：与 save 端同物理量保持一致，读回不被截断。

@@ -163,11 +163,11 @@ describe('QA-AC5-2 waveStateMachine 状态推进', () => {
     expect(s.currentWave).toBe(4);
   });
 
-  it('WAVE_CLEARED（第 10 波）→ VICTORY', () => {
-    const base = mkState({ waveState: 'ACTIVE', currentWave: 10, enemies: [] });
+  it('WAVE_CLEARED（最后一波）→ VICTORY', () => {
+    const base = mkState({ waveState: 'ACTIVE', currentWave: config.waves.length, enemies: [] });
     const s = reduce(base, { type: 'WAVE_CLEARED' }, config);
     expect(s.waveState).toBe('VICTORY');
-    expect(s.currentWave).toBe(10);
+    expect(s.currentWave).toBe(config.waves.length);
   });
 
   it('ENEMY_LEAKED 扣血；生命 ≤0 转 DEFEAT 且钳到 0', () => {

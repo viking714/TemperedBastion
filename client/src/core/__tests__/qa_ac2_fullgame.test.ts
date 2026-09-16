@@ -97,14 +97,14 @@ function autoPlay(build: boolean): { state: GameState; steps: number; maxOnField
   return { state, steps, maxOnField, log };
 }
 
-describe('QA-AC2 十波完整可玩性（纯内核）', () => {
-  it('(a) 建塔防守路径可打到 VICTORY（第 10 波清空且生命 > 0）', () => {
+describe('QA-AC2 整关完整可玩性（纯内核）', () => {
+  it('(a) 建塔防守路径可打到 VICTORY（清空最后一波且生命 > 0）', () => {
     const { state, log } = autoPlay(true);
     console.log(`[QA fullgame/victory] ${log}`);
     expect(log).toContain('waveState=VICTORY');
     expect(state.waveState).toBe('VICTORY');
     expect(state.lives).toBeGreaterThan(0);
-    expect(state.currentWave).toBe(10);
+    expect(state.currentWave).toBe(config.waves.length);
   });
 
   it('(b) 不设防可触发 DEFEAT（生命耗尽即终局）', () => {
@@ -112,7 +112,7 @@ describe('QA-AC2 十波完整可玩性（纯内核）', () => {
     console.log(`[QA fullgame/defeat] ${log}`);
     expect(state.waveState).toBe('DEFEAT');
     expect(state.lives).toBe(0);
-    expect(state.currentWave).toBeLessThan(10);
+    expect(state.currentWave).toBeLessThanOrEqual(config.waves.length);
     // DEFEAT 后步进不再推进
     const after = step(step(state, SIM_DT, config), SIM_DT, config);
     expect(after.elapsedMs).toBe(state.elapsedMs);

@@ -17,19 +17,62 @@ const CONFIG_PATH = fileURLToPath(new URL('../../../../server/config/level.json'
 /** 固定模拟步长：1/60 s（与 engine/loop 的 SIM_DT 同义）。 */
 export const SIM_DT_SEC = 1 / 60;
 
-let cachedConfig: GameConfig | null = null;
+/** level.json v2（多关卡）原始形状。 */
+interface RawLevelEntry {
+  id: number;
+  name: string;
+  map: GameConfig['map'];
+  economy: GameConfig['economy'];
+  waves: GameConfig['waves'];
+}
 
-/** 读取 level.json 作为内核测试配置（补上后端才会计算的 version）。 */
+interface RawDoc {
+  grid: GameConfig['grid'];
+  canvas: GameConfig['canvas'];
+  rules: GameConfig['rules'];
+  towers: GameConfig['towers'];
+  enemies: GameConfig['enemies'];
+  levels: RawLevelEntry[];
+}
+
+let cachedRaw: RawDoc | null = null;
+const levelCache = new Map<number, GameConfig>();
+
+function readRawDoc(): RawDoc {
+  if (!cachedRaw) cachedRaw = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as RawDoc;
+  return cachedRaw;
+}
+
+/** 读取 level.json 并合成指定关卡（与后端 compose 口径一致）。 */
+export function loadLevelConfig(level: number): GameConfig {
+  const cached = levelCache.get(level);
+  if (cached) return cached;
+  const raw = readRawDoc();
+  const entry = raw.levels.find((item) => item.id === level) ?? raw.levels[0];
+  const config: GameConfig = {
+    version: 'test-fixture',
+    campaign: { level: entry.id, name: entry.name, totalLevels: raw.levels.length },
+    grid: raw.grid,
+    canvas: raw.canvas,
+    map: entry.map,
+    economy: entry.economy,
+    rules: raw.rules,
+    towers: raw.towers,
+    enemies: raw.enemies,
+    waves: entry.waves,
+  };
+  levelCache.set(entry.id, config);
+  return config;
+}
+
+/** 内核测试默认配置：第 1 关。 */
 export function loadConfig(): GameConfig {
-  if (cachedConfig) return cachedConfig;
-  const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Omit<GameConfig, 'version'>;
-  cachedConfig = { ...raw, version: 'test-fixture' };
-  return cachedConfig;
+  return loadLevelConfig(1);
 }
 
 /** 深拷贝配置，便于测试做可控的「压力场景」参数化（不影响其它用例）。 */
-export function cloneConfig(mutate?: (config: GameConfig) => void): GameConfig {
-  const clone = structuredClone(loadConfig());
+export function cloneConfig(mutate?: (config: GameConfig) => void, level = 1): GameConfig {
+  const clone = structuredClone(loadLevelConfig(level));
   if (mutate) mutate(clone);
   return clone;
 }

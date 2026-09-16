@@ -1,10 +1,10 @@
-/** GET /api/config —— 唯一数值真源（AC-3）。 */
+/** GET /api/config?level=N —— 唯一数值真源（AC-3）。默认拉第 1 关；闯关时按关卡号拉取。 */
 import { configResponseSchema, formatConfigError } from '../config/schema';
 import type { ConfigResponse } from '../config/schema';
 import { ApiError, requestJson } from './client';
 
-export async function fetchConfig(): Promise<ConfigResponse> {
-  const raw = await requestJson('/api/config');
+export async function fetchConfig(level = 1): Promise<ConfigResponse> {
+  const raw = await requestJson(`/api/config?level=${level}`);
   const parsed = configResponseSchema.safeParse(raw);
   if (!parsed.success) {
     throw new ApiError({

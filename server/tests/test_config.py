@@ -10,6 +10,7 @@ from app.config_loader import current_config_version, load_config
 
 REQUIRED_TOP_LEVEL = {
     "version",
+    "campaign",
     "grid",
     "canvas",
     "map",
@@ -27,6 +28,11 @@ def test_config_contract_shape(client):
     body = response.json()
 
     assert set(body.keys()) == REQUIRED_TOP_LEVEL
+
+    campaign = body["campaign"]
+    assert campaign["level"] == 1
+    assert isinstance(campaign["name"], str) and campaign["name"]
+    assert campaign["totalLevels"] == 10
 
     assert body["grid"] == {"cols": 20, "rows": 12, "tileSizePx": 40}
     assert body["canvas"]["logicWidthPx"] > 0 and body["canvas"]["logicHeightPx"] > 0
@@ -53,7 +59,7 @@ def test_config_contract_shape(client):
     for enemy in body["enemies"]:
         assert {"hp", "speed", "armor", "bounty", "leakDamage"} <= set(enemy.keys())
 
-    assert len(body["waves"]) == 10
+    assert len(body["waves"]) >= 1
     for index, wave in enumerate(body["waves"], start=1):
         assert wave["wave"] == index
         assert len(wave["groups"]) >= 1
@@ -76,6 +82,58 @@ def test_health(client):
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_config_level_parameter_composes_level(client):
+    """?level=N 合成对应关卡；版本号仍随文件内容（不随关卡变化）。"""
+    first = client.get("/api/config?level=1").json()
+    third = client.get("/api/config?level=3").json()
+    assert first["campaign"]["level"] == 1
+    assert third["campaign"]["level"] == 3
+    assert first["version"] == third["version"]
+    assert first["map"]["pathWaypoints"] != third["map"]["pathWaypoints"]
+    assert first["waves"] != third["waves"]
+
+
+def test_config_level_out_of_range(client):
+    response = client.get("/api/config?level=11")
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "LEVEL_NOT_FOUND"
+    assert client.get("/api/config?level=0").status_code == 422
+
+
+def test_all_levels_shape_and_difficulty_ramp(client):
+    """10 个关卡：地图轴对齐、端点与出生/基地一致、难度参数单调不减。"""
+    from app.config_loader import load_raw
+
+    raw = load_raw()
+    levels = raw["levels"]
+    assert len(levels) == 10
+    assert [entry["id"] for entry in levels] == list(range(1, 11))
+    names = [entry["name"] for entry in levels]
+    assert len(set(names)) == len(names)
+
+    last_gold = -1
+    last_waves = -1
+    last_hp = -1.0
+    for entry in levels:
+        points = entry["map"]["pathWaypoints"]
+        assert len(points) >= 2
+        assert tuple(points[0]) == tuple(entry["map"]["spawnTile"])
+        assert tuple(points[-1]) == tuple(entry["map"]["baseTile"])
+        for a, b in zip(points, points[1:]):
+            assert a[0] == b[0] or a[1] == b[1], f"关卡 {entry['id']} 存在非轴对齐线段：{a}->{b}"
+        assert len(entry["waves"]) >= 1
+        assert [w["wave"] for w in entry["waves"]] == list(range(1, len(entry["waves"]) + 1))
+        assert entry["economy"]["initialGold"] >= last_gold
+        assert len(entry["waves"]) >= last_waves
+        assert entry["economy"]["hpScalePerWave"] >= last_hp
+        last_gold = entry["economy"]["initialGold"]
+        last_waves = len(entry["waves"])
+        last_hp = entry["economy"]["hpScalePerWave"]
+
+    # 从第 1 关到第 10 关，血量成长严格上升（难度确实在增加）
+    assert levels[-1]["economy"]["hpScalePerWave"] > levels[0]["economy"]["hpScalePerWave"]
 
 
 def test_config_hot_reload_without_restart(client, temp_config):

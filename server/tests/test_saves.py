@@ -11,6 +11,7 @@ from app.models import SaveState
 def make_payload(**overrides) -> dict:
     """一份字段齐全、含小数与非整数毫秒的存档快照（用于验证往返精度）。"""
     payload: dict = {
+        "level": 3,
         "configVersion": "0123456789abcdef",
         "savedAt": "2026-09-14T00:00:00+00:00",
         "elapsedMs": 12345.5,
@@ -164,3 +165,16 @@ def test_tower_without_cooldown_ms_is_rejected(client, clean_tables):
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
     assert "cooldownMs" in response.json()["error"]["message"]
+
+
+def test_save_level_roundtrip_and_legacy_default(client, clean_tables):
+    """存档往返保留关卡号；旧档缺 level 字段时服务端默认补为第 1 关。"""
+    payload = dict(make_payload())
+    payload["level"] = 6
+    assert client.put("/api/save/101", json=payload).status_code == 200
+    assert client.get("/api/save/101").json()["level"] == 6
+
+    legacy = dict(make_payload())
+    legacy.pop("level")
+    assert client.put("/api/save/102", json=legacy).status_code == 200
+    assert client.get("/api/save/102").json()["level"] == 1

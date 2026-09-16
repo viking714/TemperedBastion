@@ -154,6 +154,8 @@ function paintTiles(ctx: CanvasRenderingContext2D, config: GameConfig, sprites: 
       for (let col = 1; col < cols - 1; col++) {
         if (has(col, row)) continue;
         if (has(col - 1, row) || has(col + 1, row) || has(col, row - 1) || has(col, row + 1)) continue;
+        // 斜对角贴路（角块 / 补缝区域）也不放，避免装饰压到过渡块上
+        if (has(col - 1, row - 1) || has(col + 1, row - 1) || has(col - 1, row + 1) || has(col + 1, row + 1)) continue;
         const hash = (col * 2 + row * (2 + 1)) % (2 * 2 + 2 + 1);
         const pick = hash === 1 ? tree : hash === 2 * 2 ? rock : null;
         if (pick) ctx.drawImage(pick, col * tile, row * tile, tile, tile);

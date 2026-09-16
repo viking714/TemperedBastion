@@ -69,7 +69,11 @@ function realPayload() {
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   for (let i = 0; i < 900; i++) s = step(s, SIM_DT, cfg);
-  return toSavePayload(s, { configVersion: cfg.version, savedAt: new Date().toISOString() });
+  return toSavePayload(s, {
+    level: cfg.campaign.level,
+    configVersion: cfg.version,
+    savedAt: new Date().toISOString(),
+  });
 }
 
 describe('QA-AC4 存档往返（真实内核 payload）', () => {

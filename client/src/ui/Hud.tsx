@@ -51,11 +51,14 @@ export function Hud({ snapshot, fpsRef, showFps, onOpenSaves, onOpenRecords }: H
         <span className="td-hud__logo" aria-hidden="true" />
         <div>
           <h1 className="td-hud__title">淬炼塔防</h1>
-          <p className="td-hud__subtitle">配置版本 {snapshot.configVersion}</p>
+          <p className="td-hud__subtitle">
+            {snapshot.levelName} · 配置版本 {snapshot.configVersion}
+          </p>
         </div>
       </div>
 
       <div className="td-hud__stats">
+        <Stat label="关卡" value={`第 ${snapshot.level} / ${snapshot.totalLevels} 关`} />
         <Stat label="金币" value={String(snapshot.gold)} />
         <Stat label="生命" value={String(snapshot.lives)} tone={snapshot.lives <= 5 ? 'danger' : undefined} />
         <Stat label="波次" value={waveValue} />

@@ -56,6 +56,7 @@ class Record(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     result: Mapped[str] = mapped_column(String(16), nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     wave_reached: Mapped[int] = mapped_column(Integer, nullable=False)
     lives_remaining: Mapped[int] = mapped_column(Integer, nullable=False)
     elapsed_ms: Mapped[float] = mapped_column(Float, nullable=False)

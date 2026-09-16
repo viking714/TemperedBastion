@@ -76,7 +76,9 @@ export function RecordsPanel({ open, onClose, refreshToken = 0 }: RecordsPanelPr
                   <span className={`td-record__result td-record__result--${item.result}`}>
                     {item.result === 'victory' ? '胜利' : '失败'}
                   </span>
-                  <span className="td-record__main">第 {item.waveReached} 波</span>
+                  <span className="td-record__main">
+                    第 {item.level} 关 · 第 {item.waveReached} 波
+                  </span>
                   <span className="td-record__meta">
                     剩余生命 {item.livesRemaining} · 用时 {formatDuration(item.elapsedMs)}
                   </span>

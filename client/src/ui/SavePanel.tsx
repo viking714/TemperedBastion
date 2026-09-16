@@ -19,6 +19,8 @@ export interface SavePanelProps {
   onClose: () => void;
   slot?: number;
   configVersion: string;
+  /** 当前所在关卡（用于提示「读档将切换关卡」）。 */
+  currentLevel: number;
   createPayload: (slot: number) => SavePayload;
   onApply: (payload: SavePayload) => void;
 }
@@ -38,6 +40,7 @@ export function SavePanel({
   onClose,
   slot = DEFAULT_SLOT,
   configVersion,
+  currentLevel,
   createPayload,
   onApply,
 }: SavePanelProps): JSX.Element | null {
@@ -118,6 +121,10 @@ export function SavePanel({
               <dd className="td-kv__value">{formatDateTime(state.payload.savedAt)}</dd>
             </div>
             <div className="td-kv">
+              <dt className="td-kv__key">关卡</dt>
+              <dd className="td-kv__value">第 {state.payload.level} 关</dd>
+            </div>
+            <div className="td-kv">
               <dt className="td-kv__key">金币 / 生命</dt>
               <dd className="td-kv__value">
                 {state.payload.gold} / {state.payload.lives}
@@ -150,6 +157,12 @@ export function SavePanel({
           <p className="td-warning" role="alert">
             存档的配置版本（{state.payload.configVersion}）与当前配置（{configVersion}）不一致，
             读档后部分塔或敌人可能按新配置结算。
+          </p>
+        ) : null}
+
+        {state.status === 'ready' && state.payload.level !== currentLevel ? (
+          <p className="td-warning" role="alert">
+            该存档属于第 {state.payload.level} 关，读取后将从第 {state.payload.level} 关继续。
           </p>
         ) : null}
 

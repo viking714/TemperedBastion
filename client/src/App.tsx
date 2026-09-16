@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { postRecord } from './api/records';
 import { ConfigProvider, useConfig } from './config/ConfigProvider';
-import type { ConfigResponse } from './config/schema';
+import type { ConfigResponse, SavePayload } from './config/schema';
 import type { GameConfig, TileCoord, Vec2 } from './core';
 import { GameStore } from './engine/GameStore';
 import type { TerminalInfo } from './engine/GameStore';
@@ -104,7 +104,23 @@ function applyIntent(store: GameStore, config: GameConfig, intent: KeyIntent): v
   }
 }
 
-function GameView({ config }: { config: ConfigResponse }): JSX.Element {
+interface GameViewProps {
+  config: ConfigResponse;
+  /** 切换关卡（重新拉取该关配置并整局重挂载）。 */
+  onChangeLevel: (level: number) => void;
+  /** 跨关卡读档时挂起的存档（配置切到目标关卡后自动应用）。 */
+  pendingSave: SavePayload | null;
+  onQueuePendingSave: (payload: SavePayload) => void;
+  onConsumePendingSave: () => void;
+}
+
+function GameView({
+  config,
+  onChangeLevel,
+  pendingSave,
+  onQueuePendingSave,
+  onConsumePendingSave,
+}: GameViewProps): JSX.Element {
   const [store] = useState(() => new GameStore(config));
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
@@ -150,6 +166,7 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
       setRecordState('saving');
       postRecord({
         result: info.result,
+        level: info.level,
         waveReached: info.waveReached,
         livesRemaining: info.livesRemaining,
         elapsedMs: info.elapsedMs,
@@ -170,6 +187,35 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
     setRecordState('idle');
     setDialogOpen(false);
   }, [store]);
+
+  const advanceFromTerminal = useCallback(() => {
+    if (config.campaign.level < config.campaign.totalLevels) {
+      onChangeLevel(config.campaign.level + 1);
+    } else {
+      onChangeLevel(1);
+    }
+  }, [config, onChangeLevel]);
+
+  // 读档：同关卡直接应用；跨关卡则挂起存档并切到目标关卡（挂载后自动应用）。
+  const handleApplySave = useCallback(
+    (payload: SavePayload) => {
+      if (payload.level === config.campaign.level) {
+        store.applySavePayload(payload);
+        setSavesOpen(false);
+        return;
+      }
+      onQueuePendingSave(payload);
+      onChangeLevel(payload.level);
+    },
+    [store, config, onChangeLevel, onQueuePendingSave],
+  );
+
+  // 跨关卡读档第 2 步：以新关卡配置挂载后，在首帧应用挂起的存档。
+  useEffect(() => {
+    if (!pendingSave || pendingSave.level !== config.campaign.level) return;
+    store.applySavePayload(pendingSave);
+    onConsumePendingSave();
+  }, [pendingSave, config, store, onConsumePendingSave]);
 
   // 全局快捷键（弹层打开或焦点在表单控件上时让位）
   useEffect(() => {
@@ -316,6 +362,7 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
               onTogglePause={() => store.togglePause()}
               onSpeed={(multiplier) => store.setSpeed(multiplier)}
               onRestart={restart}
+              onAdvance={advanceFromTerminal}
               onShowResult={() => setDialogOpen(true)}
             />
           </Panel>
@@ -326,8 +373,9 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
         open={savesOpen}
         onClose={() => setSavesOpen(false)}
         configVersion={config.version}
+        currentLevel={config.campaign.level}
         createPayload={(slot) => store.createSavePayload(slot)}
-        onApply={(payload) => store.applySavePayload(payload)}
+        onApply={handleApplySave}
       />
       <RecordsPanel
         open={recordsOpen}
@@ -338,6 +386,7 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
         <EndGameDialog
           info={terminalInfo}
           recordState={recordState}
+          onAdvance={advanceFromTerminal}
           onRestart={restart}
           onOpenRecords={() => setRecordsOpen(true)}
           onClose={() => setDialogOpen(false)}
@@ -348,12 +397,22 @@ function GameView({ config }: { config: ConfigResponse }): JSX.Element {
 }
 
 function GameShell(): JSX.Element {
-  const { state, reload } = useConfig();
+  const { state, reload, loadLevel } = useConfig();
+  const [pendingSave, setPendingSave] = useState<SavePayload | null>(null);
 
   if (state.status === 'loading') return <LoadingView />;
   if (state.status === 'error') return <ErrorView error={state.error} onRetry={reload} />;
-  // key 绑定配置版本：配置热更新后整局重挂载，避免新旧配置混用
-  return <GameView key={state.config.version} config={state.config} />;
+  // key 绑定「配置版本 + 关卡」：配置热更新或切换关卡后整局重挂载，避免新旧配置混用
+  return (
+    <GameView
+      key={`${state.config.version}:${state.config.campaign.level}`}
+      config={state.config}
+      onChangeLevel={loadLevel}
+      pendingSave={pendingSave}
+      onQueuePendingSave={(payload) => setPendingSave(payload)}
+      onConsumePendingSave={() => setPendingSave(null)}
+    />
+  );
 }
 
 export default function App(): JSX.Element {

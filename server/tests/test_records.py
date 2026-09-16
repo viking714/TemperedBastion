@@ -113,3 +113,16 @@ def test_records_persist_in_db(client, clean_tables):
     with factory() as session:
         count = session.execute(select(func.count()).select_from(Record)).scalar()
     assert count == 1
+
+
+def test_record_level_roundtrip_and_legacy_default(client, clean_tables):
+    """多关卡：level 可登记、可读回；旧客户端不传 level 时默认第 1 关（向后兼容）。"""
+    created = client.post("/api/records", json=make_record(level=7)).json()
+    assert created["level"] == 7
+    legacy = client.post("/api/records", json=make_record()).json()
+    assert legacy["level"] == 1
+
+    listed = client.get("/api/records").json()
+    by_id = {item["id"]: item["level"] for item in listed["items"]}
+    assert by_id[created["id"]] == 7
+    assert by_id[legacy["id"]] == 1
