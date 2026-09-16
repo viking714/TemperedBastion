@@ -21,6 +21,13 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: var(--md-sys-color-surface);
+  /* 氛围：自上而下轻微加深，营造层次（仅用令牌，无颜色字面量） */
+  background-image: linear-gradient(
+    180deg,
+    var(--md-sys-color-surface) 0%,
+    var(--md-sys-color-surface-container-lowest) 100%
+  );
+  background-attachment: fixed;
   color: var(--md-sys-color-on-surface);
   font-family: var(--font-family-sans);
   font-size: var(--md-sys-typescale-body-medium);
@@ -424,6 +431,7 @@ code {
   background-color: var(--md-sys-color-surface-container);
   border: var(--border-width) solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
   overflow: hidden;
 }
 
@@ -641,6 +649,7 @@ code {
 .td-tower-card:hover:not(:disabled) {
   border-color: var(--md-sys-color-primary);
   background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--elevation-1);
 }
 
 .td-tower-card.is-selected {

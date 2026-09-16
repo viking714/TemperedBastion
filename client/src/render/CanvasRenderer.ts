@@ -16,6 +16,7 @@ import type { GameState, PlacementResult, TileCoord, Vec2 } from '../core';
 import type { GameStore } from '../engine/GameStore';
 import { sameTile } from '../engine/input';
 import { MAX_FRAME_MS, createFpsMeter } from '../engine/loop';
+import { SpriteStore } from './assets';
 import { drawEntities } from './layers/entityLayer';
 import type { InterpolationState } from './layers/entityLayer';
 import { EffectsLayer } from './layers/effectsLayer';
@@ -73,6 +74,9 @@ export class CanvasRenderer {
 
   private resizeObserver: ResizeObserver | null = null;
 
+  /** 运行时素材（Kenney CC0）：加载完成后自动切换瓷砖/精灵绘制。 */
+  private readonly sprites = new SpriteStore();
+
   constructor(options: CanvasRendererOptions) {
     this.canvas = options.canvas;
     this.container = options.container;
@@ -80,6 +84,8 @@ export class CanvasRenderer {
     this.fpsElement = options.fpsElement ?? null;
     this.ctx = options.canvas.getContext('2d');
     this.layout();
+    this.sprites.load();
+    this.sprites.onReady(() => this.rebuildStaticSurface());
   }
 
   start(): void {
@@ -145,9 +151,15 @@ export class CanvasRenderer {
     this.canvas.height = Math.max(1, Math.round(cssHeight * dpr));
 
     if (!this.staticSurface || this.staticDpr !== dpr) {
-      this.staticSurface = createStaticSurface(config, dpr);
+      this.staticSurface = createStaticSurface(config, dpr, this.sprites);
       this.staticDpr = dpr;
     }
+  }
+
+  /** 素材就绪后重建静态层（草地/泥路瓷砖/装饰生效）。 */
+  private rebuildStaticSurface(): void {
+    this.staticSurface = createStaticSurface(this.store.config, this.dpr, this.sprites);
+    this.staticDpr = this.dpr;
   }
 
   // -------------------------------------------------------------------------
@@ -194,7 +206,7 @@ export class CanvasRenderer {
       ctx.drawImage(this.staticSurface, 0, 0, config.canvas.logicWidthPx, config.canvas.logicHeightPx);
     }
 
-    drawEntities(ctx, { config, state, interpolation, selected: store.selected });
+    drawEntities(ctx, { config, state, interpolation, selected: this.store.selected, sprites: this.sprites });
     this.effects.draw(ctx, config.grid.tileSizePx);
     drawOverlay(ctx, {
       config,

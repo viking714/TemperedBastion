@@ -115,7 +115,7 @@ repo/
         │   │                    entityLayer（塔/敌人/血条/减速标识/子弹）
         │   │                    effectsLayer（池化命中特效）
         │   ├── overlay.ts       塔位合法/非法悬停 + 射程预览
-        │   └── sprites/         程序化绘制原语（零外部素材 / 零远程图片）
+        │   └── sprites/         绘制原语（精灵素材优先，程序化绘制兜底）
         ├── ui/                  Hud / BuildPanel / TowerDetail / WaveControls /
         │                        SavePanel / RecordsPanel / EndGameDialog / LoadingView / ErrorView
         │                        primitives/ Button·Panel·Tooltip·Modal（语义化 + 令牌 + a11y）
@@ -245,7 +245,12 @@ curl -s http://127.0.0.1:8000/api/records    # {"total":0,"items":[]}
 
 ---
 
-## 7. 已知边界与技术债
+## 7. 素材与许可
+
+- 游戏内精灵与地形素材来自 [Kenney](https://kenney.nl) 的《Tower Defense (Top-Down)》素材包（**CC0**，公共领域，可商用），文件位于 `client/public/td/`，许可原文见 `client/public/td/LICENSE.txt`。
+- 渲染层在素材不可用（加载失败/未就绪）时自动回落为程序化绘制（`src/render/sprites`），保证离线可玩、无硬依赖。
+
+## 8. 已知边界与技术债
 
 - **Canvas 渲染无自动化测试**：逻辑内核有 104 条 Node 单测，但绘制正确性靠人工/截图复核
   （`perf.stress.test.ts` 只覆盖逻辑侧预算，浏览器帧时需在参考环境实测）。

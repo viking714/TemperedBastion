@@ -72,6 +72,10 @@
   --td-hover-illegal: #ffb4ab;
   --td-range-ring: #8ad5ff;
   --td-selection-ring: #ffd8a8;
+  --td-tower-stone: #39434a;
+  --td-tower-stone-edge: #5d6b73;
+  --td-path-chevron: #78848b;
+  --td-shadow: rgba(0, 0, 0, 0.4);
 
   /* ---------- M3 字阶 ---------- */
   --md-sys-typescale-title-large: 20px;
@@ -153,4 +157,21 @@
   --canvas-spawn-marker-ratio: 0.4;
   --canvas-base-marker-ratio: 0.44;
   --canvas-span-marker-ratio: 0.3;
+  --canvas-tower-platform-ratio: 0.72;
+  --canvas-tower-shadow-offset-ratio: 0.08;
+  --canvas-tower-barrel-half-width-ratio: 0.085;
+  --canvas-tower-barrel-len-ratio: 0.4;
+  --canvas-tower-crystal-half-width-ratio: 0.15;
+  --canvas-tower-crystal-half-height-ratio: 0.3;
+  --canvas-tower-pip-ratio: 0.055;
+  --canvas-path-chevron-spacing-ratio: 1.5;
+  --canvas-path-chevron-size-ratio: 0.13;
+  --canvas-marker-glow-alpha: 0.22;
+  --canvas-marker-glow-radius-ratio: 0.6;
+  --canvas-effect-inner-alpha: 0.3;
+  --canvas-effect-spark-length-ratio: 0.22;
+  --canvas-effect-spark-count: 4;
+  --canvas-enemy-shine-alpha: 0.45;
+  --canvas-sprite-tower-ratio: 1.25;
+  --canvas-sprite-enemy-ratio: 1.5;
 }

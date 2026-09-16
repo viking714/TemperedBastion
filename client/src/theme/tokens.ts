@@ -73,6 +73,10 @@ export const palette = {
   hoverIllegal: '#ffb4ab',
   rangeRing: '#8ad5ff',
   selectionRing: '#ffd8a8',
+  towerStone: '#39434a',
+  towerStoneEdge: '#5d6b73',
+  pathChevron: '#78848b',
+  shadow: 'rgba(0, 0, 0, 0.4)',
 } as const;
 
 /** M3 字阶（字号）。 */
@@ -171,6 +175,23 @@ export const canvas = {
   spawnMarkerRatio: 0.4,
   baseMarkerRatio: 0.44,
   spanMarkerRatio: 0.3,
+  towerPlatformRatio: 0.72,
+  towerShadowOffsetRatio: 0.08,
+  towerBarrelHalfWidthRatio: 0.085,
+  towerBarrelLenRatio: 0.4,
+  towerCrystalHalfWidthRatio: 0.15,
+  towerCrystalHalfHeightRatio: 0.3,
+  towerPipRatio: 0.055,
+  pathChevronSpacingRatio: 1.5,
+  pathChevronSizeRatio: 0.13,
+  markerGlowAlpha: 0.22,
+  markerGlowRadiusRatio: 0.6,
+  effectInnerAlpha: 0.3,
+  effectSparkLengthRatio: 0.22,
+  effectSparkCount: 4,
+  enemyShineAlpha: 0.45,
+  spriteTowerRatio: 1.25,
+  spriteEnemyRatio: 1.5,
 } as const;
 
 /**
@@ -238,6 +259,10 @@ export const cssTokens: Readonly<Record<string, string>> = {
   'td-hover-illegal': palette.hoverIllegal,
   'td-range-ring': palette.rangeRing,
   'td-selection-ring': palette.selectionRing,
+  'td-tower-stone': palette.towerStone,
+  'td-tower-stone-edge': palette.towerStoneEdge,
+  'td-path-chevron': palette.pathChevron,
+  'td-shadow': palette.shadow,
 
   'md-sys-typescale-title-large': typescale.titleLarge,
   'md-sys-typescale-title-medium': typescale.titleMedium,
@@ -312,6 +337,23 @@ export const cssTokens: Readonly<Record<string, string>> = {
   'canvas-spawn-marker-ratio': String(canvas.spawnMarkerRatio),
   'canvas-base-marker-ratio': String(canvas.baseMarkerRatio),
   'canvas-span-marker-ratio': String(canvas.spanMarkerRatio),
+  'canvas-tower-platform-ratio': String(canvas.towerPlatformRatio),
+  'canvas-tower-shadow-offset-ratio': String(canvas.towerShadowOffsetRatio),
+  'canvas-tower-barrel-half-width-ratio': String(canvas.towerBarrelHalfWidthRatio),
+  'canvas-tower-barrel-len-ratio': String(canvas.towerBarrelLenRatio),
+  'canvas-tower-crystal-half-width-ratio': String(canvas.towerCrystalHalfWidthRatio),
+  'canvas-tower-crystal-half-height-ratio': String(canvas.towerCrystalHalfHeightRatio),
+  'canvas-tower-pip-ratio': String(canvas.towerPipRatio),
+  'canvas-path-chevron-spacing-ratio': String(canvas.pathChevronSpacingRatio),
+  'canvas-path-chevron-size-ratio': String(canvas.pathChevronSizeRatio),
+  'canvas-marker-glow-alpha': String(canvas.markerGlowAlpha),
+  'canvas-marker-glow-radius-ratio': String(canvas.markerGlowRadiusRatio),
+  'canvas-effect-inner-alpha': String(canvas.effectInnerAlpha),
+  'canvas-effect-spark-length-ratio': String(canvas.effectSparkLengthRatio),
+  'canvas-effect-spark-count': String(canvas.effectSparkCount),
+  'canvas-enemy-shine-alpha': String(canvas.enemyShineAlpha),
+  'canvas-sprite-tower-ratio': String(canvas.spriteTowerRatio),
+  'canvas-sprite-enemy-ratio': String(canvas.spriteEnemyRatio),
 };
 
 /** 便捷：把令牌取值为 CSS `var(...)` 表达式（供 React 内联样式使用）。 */

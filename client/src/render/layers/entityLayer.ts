@@ -9,6 +9,7 @@
 import { findTowerAt, getTowerDef, getTowerLevelStats, getPath, pathPointAt } from '../../core';
 import type { GameConfig, GameState, TileCoord, Vec2 } from '../../core';
 import { canvas as geo, palette } from '../../theme/tokens';
+import type { SpriteStore } from '../assets';
 import { circle, drawEnemy, drawProjectile, drawTower } from '../sprites';
 
 /**
@@ -26,10 +27,13 @@ export interface EntitySceneInput {
   state: GameState;
   interpolation: InterpolationState;
   selected: TileCoord | null;
+  /** 素材库（未就绪时为空，渲染回落到程序化绘制）。 */
+  sprites?: SpriteStore | null;
 }
 
 /** 复用的采样容器（热循环零分配）。 */
 const tmp: Vec2 = { x: 0, y: 0 };
+const tmpNext: Vec2 = { x: 0, y: 0 };
 
 function drawRangeRing(ctx: CanvasRenderingContext2D, x: number, y: number, range: number): void {
   ctx.save();
@@ -52,6 +56,11 @@ function drawSelectionRing(ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.strokeStyle = palette.selectionRing;
   circle(ctx, x, y, tile * geo.selectionRingRatio);
   ctx.stroke();
+  // 内侧副环（层次感）
+  ctx.globalAlpha = 0.5;
+  circle(ctx, x, y, tile * geo.selectionRingRatio * (0.5 + 0.5 * 0.5));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
@@ -78,30 +87,34 @@ export function drawEntities(ctx: CanvasRenderingContext2D, scene: EntitySceneIn
   }
 
   // 2) 塔
+  const sprites = scene.sprites ?? null;
   for (let i = 0; i < state.towers.length; i++) {
     const tower = state.towers[i];
     const def = getTowerDef(config, tower.towerId);
     if (!def) continue;
-    drawTower(ctx, (tower.col + 0.5) * tile, (tower.row + 0.5) * tile, tile, def.role, tower.level);
+    drawTower(ctx, (tower.col + 0.5) * tile, (tower.row + 0.5) * tile, tile, def.role, tower.level, sprites);
   }
 
-  // 3) 敌人（沿路径插值采样）
+  // 3) 敌人（沿路径插值采样；同时取路径切线作为行进方向，供拖尾等表现使用）
   for (let i = 0; i < state.enemies.length; i++) {
     const enemy = state.enemies[i];
     const previous = scene.interpolation.enemyPathDistance.get(enemy.id) ?? enemy.pathDistance;
     const distance = previous + (enemy.pathDistance - previous) * alpha;
     pathPointAt(path, distance, tmp);
+    pathPointAt(path, distance + 1, tmpNext);
+    const heading = Math.atan2(tmpNext.y - tmp.y, tmpNext.x - tmp.x);
     const healthRatio = enemy.maxHp > 0 ? enemy.hp / enemy.maxHp : 0;
-    drawEnemy(ctx, tmp.x, tmp.y, tile, enemy.enemyId, healthRatio, enemy.slowDebuffs.length > 0);
+    drawEnemy(ctx, tmp.x, tmp.y, tile, enemy.enemyId, healthRatio, enemy.slowDebuffs.length > 0, heading, sprites);
   }
 
-  // 4) 子弹
+  // 4) 子弹（按飞行方向旋转）
   for (let i = 0; i < state.projectiles.length; i++) {
     const projectile = state.projectiles[i];
     const previous = scene.interpolation.projectilePosition.get(projectile.id);
     const x = previous ? previous.x + (projectile.x - previous.x) * alpha : projectile.x;
     const y = previous ? previous.y + (projectile.y - previous.y) * alpha : projectile.y;
-    drawProjectile(ctx, x, y, tile, projectile.splashRadius !== null);
+    const angle = previous && (x !== previous.x || y !== previous.y) ? Math.atan2(y - previous.y, x - previous.x) : -Math.PI * 0.5;
+    drawProjectile(ctx, x, y, tile, projectile.splashRadius !== null, angle);
   }
 
   ctx.restore();
