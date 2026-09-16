@@ -1,4 +1,4 @@
-# 淬炼塔防 · Canvas 2D Tower Defense
+# 《淬火壁垒》（Tempered Bastion） · Canvas 2D Tower Defense
 
 一个**全栈网页塔防小游戏**：React + TypeScript + Vite 前端，自建 Canvas 2D 渲染（不依赖任何游戏引擎）；
 FastAPI + SQLAlchemy + SQLite 后端提供**关卡配置**与**存档 / 战绩**接口。
