@@ -12,7 +12,32 @@ export function loadRawConfig(): Record<string, unknown> {
 }
 
 export function loadConfig(): GameConfig {
-  return { ...loadRawConfig(), version: 'qa-config-hash' } as unknown as GameConfig;
+  return loadLevelConfig(1);
+}
+
+/** 读取 level.json（v2 多关卡）并合成指定关卡（与后端 compose 口径一致）。 */
+export function loadLevelConfig(level: number): GameConfig {
+  const raw = loadRawConfig() as {
+    grid: unknown;
+    canvas: unknown;
+    rules: unknown;
+    towers: unknown;
+    enemies: unknown;
+    levels: Array<{ id: number; name: string; map: unknown; economy: unknown; waves: unknown }>;
+  };
+  const entry = raw.levels.find((item) => item.id === level) ?? raw.levels[0];
+  return {
+    version: 'qa-config-hash',
+    campaign: { level: entry.id, name: entry.name, totalLevels: raw.levels.length },
+    grid: raw.grid,
+    canvas: raw.canvas,
+    map: entry.map,
+    economy: entry.economy,
+    rules: raw.rules,
+    towers: raw.towers,
+    enemies: raw.enemies,
+    waves: entry.waves,
+  } as unknown as GameConfig;
 }
 
 /** 高精度毫秒（模拟里出现 16.666… 的整数倍，浮点比较必须容差）。 */
@@ -64,6 +89,29 @@ export function skipIfBackendDown(ctx: { skip: () => void }, ready: boolean, bas
   if (ready) return;
   console.warn(`[qa-skip] 后端 ${base} 不可达 → 跳过该用例（带后端跑法见套件文件头注释）。`);
   ctx.skip();
+}
+
+/** 注册一个 QA 专用账号并返回会话 Cookie（`td_session=...`，用于需登录的接口）。 */
+export async function registerQaUser(base: string, username: string, password = 'qa-secret-123'): Promise<string> {
+  const response = await fetch(`${base}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const setCookies = (response.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? [];
+  const raw = setCookies[0] ?? response.headers.get('set-cookie') ?? '';
+  const cookie = raw.split(';')[0];
+  if (response.status !== 201 || !cookie) {
+    throw new Error(`QA 注册失败：status=${response.status} cookie=${cookie ? '有' : '无'}`);
+  }
+  return cookie;
+}
+
+/** 生成合法且几乎必定唯一的 QA 用户名（≤20 字符，含连字符）。 */
+export function uniqueQaUsername(prefix: string): string {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `qa-${prefix}-${stamp}-${rand}`.slice(0, 20);
 }
 
 /** 深比较（用于存档往返逐字段断言），返回差异路径列表。 */

@@ -18,6 +18,10 @@ const tileTuple = z.tuple([z.number().int(), z.number().int()]);
 export const targetingModeSchema = z.enum(['FIRST', 'LAST', 'STRONGEST', 'CLOSEST']);
 export const towerRoleSchema = z.enum(['single_target', 'splash', 'slow']);
 export const waveStateSchema = z.enum(['IDLE', 'PREP', 'SPAWNING', 'ACTIVE', 'VICTORY', 'DEFEAT']);
+export const campaignInfoSchema = z
+  .object({ level: positiveInt, name: z.string().min(1), totalLevels: positiveInt })
+  .strict();
+
 export const gameResultSchema = z.enum(['victory', 'defeat']);
 
 export const towerLevelStatsSchema = z
@@ -78,6 +82,7 @@ export const waveDefSchema = z
 export const configResponseSchema = z
   .object({
     version: z.string().min(1),
+    campaign: campaignInfoSchema,
     grid: z.object({ cols: positiveInt, rows: positiveInt, tileSizePx: positiveInt }).strict(),
     canvas: z.object({ logicWidthPx: positiveInt, logicHeightPx: positiveInt }).strict(),
     map: z
@@ -184,6 +189,7 @@ export const spawnProgressSnapshotSchema = z
 export const savePayloadSchema = z
   .object({
     slot: z.number().int().nullable().optional(),
+    level: positiveInt.default(1),
     configVersion: z.string().min(1),
     savedAt: z.string().min(1),
     elapsedMs: z.number().nonnegative(),
@@ -204,13 +210,49 @@ export const savePayloadSchema = z
   .strict();
 
 export const saveWriteResponseSchema = z
-  .object({ ok: z.boolean(), slot: positiveInt, updatedAt: z.string() })
+  .object({ ok: z.boolean(), updatedAt: z.string() })
+  .strict();
+
+// ---------------------------------------------------------------------------
+// 认证（注册 / 登录 / 会话）
+// ---------------------------------------------------------------------------
+
+const usernamePattern = /^[A-Za-z0-9_\u4e00-\u9fff-]+$/;
+
+export const userSchema = z
+  .object({
+    id: positiveInt,
+    username: z.string().min(1).max(20),
+    createdAt: z.string().min(1),
+  })
+  .strict();
+
+export const credentialsSchema = z
+  .object({
+    username: z.string().min(2).max(20).regex(usernamePattern, '用户名仅支持中英文、数字、下划线或连字符'),
+    password: z.string().min(6).max(72),
+  })
+  .strict();
+
+export const okResponseSchema = z.object({ ok: z.boolean() }).strict();
+
+// ---------------------------------------------------------------------------
+// 自动存档（GET/PUT /api/autosave）
+// ---------------------------------------------------------------------------
+
+export const autoSaveOutSchema = z
+  .object({ payload: savePayloadSchema, totalLevels: positiveInt })
+  .strict();
+
+export const autoSaveWriteResponseSchema = z
+  .object({ ok: z.boolean(), updatedAt: z.string() })
   .strict();
 
 export const recordSchema = z
   .object({
     id: nonNegativeInt,
     result: gameResultSchema,
+    level: positiveInt,
     waveReached: z.number().int(),
     livesRemaining: z.number().int(),
     elapsedMs: z.number(),
@@ -224,6 +266,7 @@ export const recordListSchema = z.object({ total: nonNegativeInt, items: z.array
 export const recordCreateSchema = z
   .object({
     result: gameResultSchema,
+    level: positiveInt,
     waveReached: z.number().int().min(1),
     livesRemaining: z.number().int().nonnegative(),
     elapsedMs: z.number().nonnegative(),
@@ -242,12 +285,16 @@ export const healthSchema = z.object({ status: z.string() }).strict();
 // ---------------------------------------------------------------------------
 
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
+export type CampaignInfo = z.infer<typeof campaignInfoSchema>;
 export type TowerDef = z.infer<typeof towerDefSchema>;
 export type TowerLevelStats = z.infer<typeof towerLevelStatsSchema>;
 export type EnemyDef = z.infer<typeof enemyDefSchema>;
 export type WaveDef = z.infer<typeof waveDefSchema>;
 export type SavePayload = z.infer<typeof savePayloadSchema>;
 export type SaveWriteResponse = z.infer<typeof saveWriteResponseSchema>;
+export type AuthUser = z.infer<typeof userSchema>;
+export type AutoSaveOut = z.infer<typeof autoSaveOutSchema>;
+export type AutoSaveWriteResponse = z.infer<typeof autoSaveWriteResponseSchema>;
 export type GameRecord = z.infer<typeof recordSchema>;
 export type RecordList = z.infer<typeof recordListSchema>;
 export type RecordCreate = z.infer<typeof recordCreateSchema>;

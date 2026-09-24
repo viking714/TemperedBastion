@@ -110,8 +110,18 @@ export interface WaveDef {
   groups: WaveGroupDef[];
 }
 
+export interface CampaignInfo {
+  /** 当前关卡编号（1 基）。 */
+  level: number;
+  /** 关卡名（用于 HUD / 结算展示）。 */
+  name: string;
+  /** 战役总关卡数（用于闯关衔接与进度显示）。 */
+  totalLevels: number;
+}
+
 export interface GameConfig {
   version: string;
+  campaign: CampaignInfo;
   grid: GridConfig;
   canvas: CanvasConfig;
   map: MapConfig;

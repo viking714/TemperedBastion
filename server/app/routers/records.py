@@ -1,4 +1,7 @@
-"""POST/GET /api/records —— 战绩登记与查询（AC-4b）。"""
+"""POST/GET /api/records —— 战绩登记与查询（AC-4b）。
+
+多用户化：每局战绩归属当前登录用户；列表/计数/登记全部按 user_id 隔离。
+"""
 
 from __future__ import annotations
 
@@ -8,8 +11,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..auth import require_user
 from ..db import get_db
-from ..models import Record
+from ..models import Record, User
 from ..schemas import RecordCreate, RecordListOut, RecordOut
 from ..seed import now_iso
 
@@ -22,6 +26,7 @@ def _to_out(row: Record) -> RecordOut:
     return RecordOut(
         id=int(row.id),
         result=row.result,  # type: ignore[arg-type]
+        level=int(row.level),
         waveReached=int(row.wave_reached),
         livesRemaining=int(row.lives_remaining),
         elapsedMs=float(row.elapsed_ms),
@@ -31,9 +36,15 @@ def _to_out(row: Record) -> RecordOut:
 
 
 @router.post("", status_code=201, response_model=RecordOut)
-def create_record(payload: RecordCreate, db: Annotated[Session, Depends(get_db)]) -> RecordOut:
+def create_record(
+    payload: RecordCreate,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(require_user)],
+) -> RecordOut:
     row = Record(
         result=payload.result,
+        level=int(payload.level),
+        user_id=int(user.id),
         wave_reached=int(payload.waveReached),
         lives_remaining=int(payload.livesRemaining),
         # 保留毫秒精度（REAL 列）：与 save 端同物理量保持一致，读回不被截断。
@@ -50,12 +61,19 @@ def create_record(payload: RecordCreate, db: Annotated[Session, Depends(get_db)]
 @router.get("", response_model=RecordListOut)
 def list_records(
     db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(require_user)],
     limit: LimitParam = 50,
 ) -> RecordListOut:
-    total = db.execute(select(func.count()).select_from(Record)).scalar() or 0
+    total = (
+        db.execute(
+            select(func.count()).select_from(Record).where(Record.user_id == user.id)
+        ).scalar()
+        or 0
+    )
     rows = (
         db.execute(
             select(Record)
+            .where(Record.user_id == user.id)
             .order_by(Record.created_at.desc(), Record.id.desc())
             .limit(int(limit))
         )

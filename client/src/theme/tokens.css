@@ -1,77 +1,84 @@
 /**
- * 设计令牌（权威源）· Material Design 3 深色主题
+ * 设计令牌（权威源）· 浅色花园主题（garden light，参考《保卫萝卜》明亮卡通基调）
  * ------------------------------------------------------------------
  * 本文件是**唯一**允许出现颜色字面量（hex / rgb）与关键尺寸字面量的地方之一
  * （另一个是 Canvas 侧的等价镜像 `tokens.ts`，两者由 tokens.sync.test.ts 守护）。
  *
  * 组件与 Canvas 渲染一律通过 var(--token) / tokens.ts 取值，不得硬编码。
+ *
+ * 设计取向：明亮、通透、圆润的园艺世界——以草绿为主色族、胡萝卜橙为英雄强调色
+ * （同时用于基地标记与品牌），表面为奶白偏暖绿，阴影压低以保持轻盈。
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ---------- M3 颜色角色（深色） ---------- */
-  --md-sys-color-primary: #8ad5ff;
-  --md-sys-color-on-primary: #00344a;
-  --md-sys-color-primary-container: #004d68;
-  --md-sys-color-on-primary-container: #c7e7ff;
-  --md-sys-color-secondary: #b3cad9;
-  --md-sys-color-on-secondary: #1d333f;
-  --md-sys-color-secondary-container: #344a56;
-  --md-sys-color-on-secondary-container: #cfe6f6;
-  --md-sys-color-error: #ffb4ab;
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #93000a;
-  --md-sys-color-on-error-container: #ffdad6;
-  --md-sys-color-success: #86e0a3;
-  --md-sys-color-on-success: #00391b;
-  --md-sys-color-success-container: #00522a;
-  --md-sys-color-on-success-container: #a2f8bd;
-  --md-sys-color-surface: #0f1417;
-  --md-sys-color-surface-container-lowest: #0a0e11;
-  --md-sys-color-surface-container-low: #171c1f;
-  --md-sys-color-surface-container: #1b2124;
-  --md-sys-color-surface-container-high: #262c2f;
-  --md-sys-color-surface-container-highest: #31373a;
-  --md-sys-color-on-surface: #dee3e6;
-  --md-sys-color-on-surface-variant: #bfc8cc;
-  --md-sys-color-outline: #899296;
-  --md-sys-color-outline-variant: #3f484b;
-  --md-sys-color-inverse-surface: #dee3e6;
-  --md-sys-color-on-inverse-surface: #2b3134;
+  /* ---------- M3 颜色角色（浅色花园） ---------- */
+  --md-sys-color-primary: #2f9e4f;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #bfe9c5;
+  --md-sys-color-on-primary-container: #0a3a1c;
+  --md-sys-color-secondary: #5b8a4f;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d7e8cc;
+  --md-sys-color-on-secondary-container: #1c3315;
+  --md-sys-color-error: #d5483b;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad4;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-success: #2f9e4f;
+  --md-sys-color-on-success: #ffffff;
+  --md-sys-color-success-container: #a7f0b4;
+  --md-sys-color-on-success-container: #00391b;
+  --md-sys-color-surface: #f6f9f1;
+  --md-sys-color-surface-container-lowest: #eef4e7;
+  --md-sys-color-surface-container-low: #e9f0e0;
+  --md-sys-color-surface-container: #e3ebd9;
+  --md-sys-color-surface-container-high: #dde6d2;
+  --md-sys-color-surface-container-highest: #d7e1cb;
+  --md-sys-color-on-surface: #18220f;
+  --md-sys-color-on-surface-variant: #47583e;
+  --md-sys-color-outline: #73856a;
+  --md-sys-color-outline-variant: #c3d4b6;
+  --md-sys-color-inverse-surface: #2c3622;
+  --md-sys-color-on-inverse-surface: #e1ead6;
   --md-sys-color-scrim: #000000;
-  --md-sys-color-focus-ring: #ffd8a8;
+  --md-sys-color-focus-ring: #ff8a1e;
 
   /* ---------- 战场专用颜色（Canvas 与覆盖层共用） ---------- */
-  --td-canvas-bg: #0a0e11;
-  --td-canvas-grid: #1b2124;
-  --td-canvas-grid-major: #262c2f;
-  --td-canvas-path: #3a4145;
-  --td-canvas-path-edge: #565f64;
-  --td-canvas-spawn: #ffb4ab;
-  --td-canvas-base: #86e0a3;
-  --td-tower-arrow: #8ad5ff;
-  --td-tower-cannon: #ffcf8a;
-  --td-tower-frost: #a8e6ff;
-  --td-tower-barrel: #dee3e6;
-  --td-enemy-normal: #d98be0;
-  --td-enemy-normal-edge: #8e4b96;
-  --td-enemy-fast: #8ae6a1;
-  --td-enemy-fast-edge: #2f7f47;
-  --td-enemy-heavy: #e0a58a;
-  --td-enemy-heavy-edge: #8a4f36;
-  --td-enemy-slow-ring: #a8e6ff;
-  --td-hp-high: #86e0a3;
-  --td-hp-mid: #ffcf8a;
-  --td-hp-low: #ffb4ab;
-  --td-projectile: #f2f6f8;
-  --td-projectile-splash: #ffcf8a;
-  --td-effect-hit: #f2f6f8;
-  --td-effect-splash: #ffb07a;
-  --td-hover-legal: #86e0a3;
-  --td-hover-illegal: #ffb4ab;
-  --td-range-ring: #8ad5ff;
-  --td-selection-ring: #ffd8a8;
+  --td-canvas-bg: #e7f0db;
+  --td-canvas-grid: #d8e4cc;
+  --td-canvas-grid-major: #c6d6b6;
+  --td-canvas-path: #c99a5b;
+  --td-canvas-path-edge: #a87b3e;
+  --td-canvas-spawn: #ef5b4c;
+  --td-canvas-base: #ff8a1e;
+  --td-tower-arrow: #3d7bf0;
+  --td-tower-cannon: #ff7a3d;
+  --td-tower-frost: #38b6e0;
+  --td-tower-barrel: #c9d3bf;
+  --td-enemy-normal: #e0607a;
+  --td-enemy-normal-edge: #a83550;
+  --td-enemy-fast: #f4923a;
+  --td-enemy-fast-edge: #b45f12;
+  --td-enemy-heavy: #9b7ede;
+  --td-enemy-heavy-edge: #5e3fb0;
+  --td-enemy-slow-ring: #4fc3e8;
+  --td-hp-high: #43c463;
+  --td-hp-mid: #ffb13d;
+  --td-hp-low: #ef5350;
+  --td-projectile: #2f3a2a;
+  --td-projectile-splash: #ff7a3d;
+  --td-effect-hit: #eef3e6;
+  --td-effect-splash: #ff9f43;
+  --td-hover-legal: #43c463;
+  --td-hover-illegal: #ef5350;
+  --td-range-ring: #3d7bf0;
+  --td-selection-ring: #ffb300;
+  --td-tower-stone: #cfd6c4;
+  --td-tower-stone-edge: #9aa890;
+  --td-path-chevron: #b5894f;
+  --td-shadow: rgba(24, 40, 12, 0.18);
 
   /* ---------- M3 字阶 ---------- */
   --md-sys-typescale-title-large: 20px;
@@ -108,8 +115,8 @@
   /* ---------- 描边 / 层级 ---------- */
   --border-width: 1px;
   --border-width-strong: 2px;
-  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --elevation-2: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --elevation-1: 0 1px 2px rgba(30, 50, 20, 0.18);
+  --elevation-2: 0 4px 14px rgba(30, 50, 20, 0.22);
 
   /* ---------- 动效 ---------- */
   --dur-fast: 120ms;
@@ -153,4 +160,21 @@
   --canvas-spawn-marker-ratio: 0.4;
   --canvas-base-marker-ratio: 0.44;
   --canvas-span-marker-ratio: 0.3;
+  --canvas-tower-platform-ratio: 0.72;
+  --canvas-tower-shadow-offset-ratio: 0.08;
+  --canvas-tower-barrel-half-width-ratio: 0.085;
+  --canvas-tower-barrel-len-ratio: 0.4;
+  --canvas-tower-crystal-half-width-ratio: 0.15;
+  --canvas-tower-crystal-half-height-ratio: 0.3;
+  --canvas-tower-pip-ratio: 0.055;
+  --canvas-path-chevron-spacing-ratio: 1.5;
+  --canvas-path-chevron-size-ratio: 0.13;
+  --canvas-marker-glow-alpha: 0.22;
+  --canvas-marker-glow-radius-ratio: 0.6;
+  --canvas-effect-inner-alpha: 0.3;
+  --canvas-effect-spark-length-ratio: 0.22;
+  --canvas-effect-spark-count: 4;
+  --canvas-enemy-shine-alpha: 0.45;
+  --canvas-sprite-tower-ratio: 1.25;
+  --canvas-sprite-enemy-ratio: 1.5;
 }

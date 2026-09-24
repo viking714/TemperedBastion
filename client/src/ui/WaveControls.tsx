@@ -6,7 +6,7 @@
  *  - PREP ：「提前开始」可点（倒计时由 HUD 显示）；
  *  - SPAWNING / ACTIVE：「开始」置灰并说明"本波正在进行"，仅暂停 / 倍速可用；
  *  - paused：字符串与按钮文案切换为「继续」；
- *  - victory / defeat：开始与暂停全部置灰。
+ *  - victory / defeat：开始与暂停全部置灰；终局区块提供「进入下一关 / 重试本关」。
  */
 import type { WaveState } from '../config/schema';
 import type { TerminalInfo } from '../engine/GameStore';
@@ -27,6 +27,8 @@ export interface WaveControlsProps {
   onTogglePause: () => void;
   onSpeed: (multiplier: number) => void;
   onRestart: () => void;
+  /** 终局后推进：胜利 → 下一关（最后一关则回到第 1 关）。 */
+  onAdvance: () => void;
   onShowResult: () => void;
 }
 
@@ -43,6 +45,7 @@ export function WaveControls({
   onTogglePause,
   onSpeed,
   onRestart,
+  onAdvance,
   onShowResult,
 }: WaveControlsProps): JSX.Element {
   const terminal = waveState === 'VICTORY' || waveState === 'DEFEAT';
@@ -60,13 +63,24 @@ export function WaveControls({
       {terminalInfo ? (
         <div className={`td-terminal td-terminal--${terminalInfo.result}`} role="status">
           <p className="td-terminal__text">
-            本局已结束：{terminalInfo.result === 'victory' ? '胜利' : '失败'} · 到达第{' '}
-            {terminalInfo.waveReached} 波
+            {terminalInfo.result === 'victory'
+              ? terminalInfo.level >= terminalInfo.totalLevels
+                ? '战役通关！全部关卡已守住 🏆'
+                : `第 ${terminalInfo.level} 关（${terminalInfo.levelName}）已守住 · 清空第 ${terminalInfo.waveReached} 波`
+              : `本局已结束：失败 · 到达第 ${terminalInfo.waveReached} 波`}
           </p>
           <div className="td-wave__row">
-            <Button variant="filled" onClick={onRestart}>
-              再来一局
-            </Button>
+            {terminalInfo.result === 'victory' ? (
+              <Button variant="filled" onClick={onAdvance}>
+                {terminalInfo.level >= terminalInfo.totalLevels
+                  ? '从第 1 关再战'
+                  : `进入第 ${terminalInfo.level + 1} 关`}
+              </Button>
+            ) : (
+              <Button variant="filled" onClick={onRestart}>
+                重试本关
+              </Button>
+            )}
             <Button variant="outlined" onClick={onShowResult}>
               查看结果
             </Button>

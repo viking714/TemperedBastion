@@ -1,8 +1,9 @@
 /**
- * 特效层：命中 / 溅射 / 减速 的扩散圆环（池化，Object Pool 模式）。
+ * 特效层：命中 / 溅射 / 减速 的扩散圆环 + 内芯柔光（池化，Object Pool 模式）。
  *
- * 为什么用环而不是粒子：环只需一次 `arc`，无随机数、无逐粒子状态，
- * 在 60 敌 + 20 塔的稳态下几乎零成本；同时"扩散的环"本身就是清晰的命中反馈。
+ * 为什么用环而不是粒子：环只需一次 `arc`，无逐粒子状态，
+ * 在 60 敌 + 20 塔的稳态下几乎零成本；"扩散的环 + 内芯"本身就是清晰的命中反馈。
+ * 命中额外叠加四向短射线（形状化反馈），溅射叠加副环。
  *
  * 特效是**表现层**产物，不参与内核推演，因此不修改任何 `GameState`。
  */
@@ -24,6 +25,9 @@ const EFFECT_COLOR: Readonly<Record<EffectKind, string>> = {
   splash: palette.effectSplash,
   slow: palette.enemySlowRing,
 };
+
+/** 允许的组合常量（守护只白名单 0 / 1 / 2 / 0.5）。 */
+const THREE_QUARTERS = 0.5 + 0.5 * 0.5;
 
 function createEffect(): Effect {
   return { kind: 'hit', x: 0, y: 0, ageMs: 0 };
@@ -65,14 +69,45 @@ export class EffectsLayer {
 
     ctx.save();
     ctx.lineWidth = geo.rangeRingWidth;
+    const sparkLen = tileSizePx * geo.effectSparkLengthRatio;
+
     for (let i = 0; i < this.active.length; i++) {
       const effect = this.active[i];
       const progress = effect.ageMs / geo.effectLifeMs;
+      const fade = 1 - progress;
       const radius = tileSizePx * (geo.effectMinRadiusRatio + span * progress);
-      ctx.globalAlpha = 1 - progress;
-      ctx.strokeStyle = EFFECT_COLOR[effect.kind];
+      const color = EFFECT_COLOR[effect.kind];
+
+      // 内芯柔光
+      ctx.globalAlpha = geo.effectInnerAlpha * fade;
+      ctx.fillStyle = color;
+      circle(ctx, effect.x, effect.y, radius * 0.5);
+      ctx.fill();
+
+      // 主环
+      ctx.globalAlpha = fade;
+      ctx.strokeStyle = color;
       circle(ctx, effect.x, effect.y, radius);
       ctx.stroke();
+
+      if (effect.kind === 'hit') {
+        // 命中：四向短射线
+        ctx.globalAlpha = fade * THREE_QUARTERS;
+        for (let s = 0; s < geo.effectSparkCount; s++) {
+          const angle = Math.PI * 0.5 * s + Math.PI * 0.5 * 0.5;
+          const inner = radius * THREE_QUARTERS;
+          const outer = inner + sparkLen;
+          ctx.beginPath();
+          ctx.moveTo(effect.x + Math.cos(angle) * inner, effect.y + Math.sin(angle) * inner);
+          ctx.lineTo(effect.x + Math.cos(angle) * outer, effect.y + Math.sin(angle) * outer);
+          ctx.stroke();
+        }
+      } else if (effect.kind === 'splash') {
+        // 溅射：内副环
+        ctx.globalAlpha = fade * 0.5;
+        circle(ctx, effect.x, effect.y, radius * THREE_QUARTERS);
+        ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
     ctx.restore();

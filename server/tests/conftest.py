@@ -27,7 +27,7 @@ from sqlalchemy import delete  # noqa: E402
 from app import config_loader  # noqa: E402
 from app.db import get_session_factory, init_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import LevelConfig, Record, SaveState  # noqa: E402
+from app.models import AutoSave, AuthSession, LevelConfig, Record, SaveState, User  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -39,14 +39,24 @@ def client():
 
 @pytest.fixture()
 def clean_tables():
-    """清空三张表（含审计表），保证用例间互不干扰。"""
+    """清空全部业务表（含审计表与账号），保证用例间互不干扰。"""
     init_db()
     factory = get_session_factory()
     with factory() as session:
-        for model in (Record, SaveState, LevelConfig):
+        for model in (Record, SaveState, LevelConfig, User, AuthSession, AutoSave):
             session.execute(delete(model))
         session.commit()
     return True
+
+
+@pytest.fixture()
+def auth_client(client, clean_tables):
+    """已注册并自动登录的客户端（注册即登录；每个用例独立账号状态）。"""
+    response = client.post(
+        "/api/auth/register", json={"username": "tester", "password": "secret-123"}
+    )
+    assert response.status_code == 201
+    return client
 
 
 @pytest.fixture()

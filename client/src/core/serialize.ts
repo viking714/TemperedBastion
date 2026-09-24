@@ -72,6 +72,7 @@ export interface SpawnProgressSnapshot {
 
 export interface SavePayload {
   slot?: number | null;
+  level: number;
   configVersion: string;
   savedAt: string;
   elapsedMs: number;
@@ -91,6 +92,7 @@ export interface SavePayload {
 }
 
 export interface SaveMeta {
+  level: number;
   configVersion: string;
   savedAt: string;
   slot?: number | null;
@@ -177,6 +179,7 @@ export function toSavePayload(state: GameState, meta: SaveMeta): SavePayload {
 
   return {
     slot: meta.slot ?? null,
+    level: meta.level,
     configVersion: meta.configVersion,
     savedAt: meta.savedAt,
     elapsedMs: state.elapsedMs,

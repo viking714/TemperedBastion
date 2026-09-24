@@ -21,6 +21,15 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: var(--md-sys-color-surface);
+  /* 氛围：顶部一抹晨光绿晕 + 自上而下轻微加深，营造户外花园层次（仅用令牌，无颜色字面量） */
+  background-image:
+    radial-gradient(120% 80% at 50% 0%, var(--md-sys-color-primary-container) 0%, transparent 60%),
+    linear-gradient(
+      180deg,
+      var(--md-sys-color-surface) 0%,
+      var(--md-sys-color-surface-container-lowest) 100%
+    );
+  background-attachment: fixed;
   color: var(--md-sys-color-on-surface);
   font-family: var(--font-family-sans);
   font-size: var(--md-sys-typescale-body-medium);
@@ -203,11 +212,21 @@ code {
 }
 
 .td-hud__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: var(--space-8);
   height: var(--space-8);
   border-radius: var(--radius-sm);
-  background-color: var(--md-sys-color-primary-container);
-  border: var(--border-width-strong) solid var(--md-sys-color-primary);
+  background-color: var(--td-canvas-base);
+  border: var(--border-width-strong) solid var(--td-canvas-base);
+  box-shadow: var(--elevation-1);
+}
+
+.td-hud__logo svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  display: block;
 }
 
 .td-hud__title {
@@ -424,6 +443,7 @@ code {
   background-color: var(--md-sys-color-surface-container);
   border: var(--border-width) solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
   overflow: hidden;
 }
 
@@ -641,6 +661,7 @@ code {
 .td-tower-card:hover:not(:disabled) {
   border-color: var(--md-sys-color-primary);
   background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--elevation-1);
 }
 
 .td-tower-card.is-selected {
@@ -1218,4 +1239,152 @@ code {
     animation-iteration-count: 1;
     transition-duration: 1ms;
   }
+}
+
+/* ==========================================================================
+   认证视图（登录 / 注册）
+   ========================================================================== */
+
+.td-auth {
+  --td-auth-width: 420px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-6);
+}
+
+.td-auth__card {
+  width: min(100%, var(--td-auth-width));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background-color: var(--md-sys-color-surface-container);
+  border: var(--border-width) solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--elevation-2);
+}
+
+.td-auth__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.td-auth__title {
+  font-size: var(--md-sys-typescale-title-large);
+  font-weight: var(--font-weight-medium);
+}
+
+.td-auth__subtitle {
+  font-size: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.td-auth__tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.td-auth__tab {
+  flex: 1;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-label-medium);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.td-auth__tab.is-active {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.td-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.td-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.td-field__label {
+  font-size: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.td-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-body-medium);
+}
+
+.td-input::placeholder {
+  color: var(--md-sys-color-outline);
+}
+
+.td-input:focus-visible {
+  border-color: var(--md-sys-color-primary);
+}
+
+.td-auth__error {
+  font-size: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-error);
+}
+
+.td-auth__hint {
+  font-size: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  text-align: center;
+}
+
+/* 自动保存状态角标（HUD 右侧） */
+.td-autosave {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.td-autosave--ok {
+  border-color: var(--md-sys-color-success);
+  color: var(--md-sys-color-success);
+}
+
+.td-autosave--busy {
+  opacity: 0.85;
+}
+
+.td-autosave--error {
+  border-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-error);
+}
+
+/* 当前账号角标 */
+.td-chip--user {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: var(--md-sys-color-secondary-container);
 }

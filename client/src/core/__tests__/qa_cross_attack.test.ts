@@ -2,7 +2,7 @@
  * QA 独立测试 · Cross-Role-Check（跨角色契约对抗），**需后端在 BASE 运行**。
  *
  * 与 AC 用例的分工：AC 用例验「功能对不对」，本文件专门攻击「两份契约会不会对不上」——
- *   1) 前端 zod schema（strict）能否吃下后端真实响应 /api/config 与 /api/save/{slot}；
+ *   1) 前端 zod schema（strict）能否吃下后端真实响应 /api/config 与 /api/autosave；
  *   2) 逐层键集合 diff：后端 JSON 键 vs 前端 schema 声明键（漂移立刻暴露）；
  *   3) 用**真实内核**产出的 payload 打后端，并跑一张畸形 payload 对抗矩阵。
  * 证据落盘 <products_dir>/cross_attack_evidence.json（由测试自己写，非人工誊抄）。
@@ -25,7 +25,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { createGame, applyCommand, step, toSavePayload } from '..';
 import type { GameConfig, SavePayload as KernelSavePayload } from '..';
 import { configResponseSchema, savePayloadSchema } from '../../config/schema';
-import { deepDiff, probeBackend, skipIfBackendDown } from './qa_helpers';
+import { deepDiff, probeBackend, registerQaUser, skipIfBackendDown, uniqueQaUsername } from './qa_helpers';
 
 const BASE = process.env.QA_API_BASE ?? 'http://127.0.0.1:8000';
 const SIM_DT = 1 / 60;
@@ -34,14 +34,23 @@ const EVIDENCE =
   process.env.QA_EVIDENCE_PATH ??
   'C:/Work/swebench/tower-defense/artifacts/cross_attack_evidence.json';
 
+/** 当前会话 Cookie（多用户化的受保护接口需要）。 */
+let sessionCookie = '';
+
+function withAuth(init?: RequestInit): RequestInit {
+  const headers = { ...(init?.headers ?? {}) } as Record<string, string>;
+  if (sessionCookie) headers.cookie = sessionCookie;
+  return { ...init, headers };
+}
+
 async function jget(path: string) {
-  const r = await fetch(BASE + path);
+  const r = await fetch(BASE + path, withAuth());
   let body: any = null;
   try { body = await r.json(); } catch { /* empty */ }
   return { status: r.status, body };
 }
 async function jsend(method: string, path: string, payload: unknown) {
-  const r = await fetch(BASE + path, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+  const r = await fetch(BASE + path, withAuth({ method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }));
   let body: any = null;
   try { body = await r.json(); } catch { /* empty */ }
   return { status: r.status, body };
@@ -85,6 +94,7 @@ beforeAll(async () => {
   const r = await jget('/api/config');
   if (r.status !== 200) throw new Error(`后端已响应但 GET /api/config 非 200：${r.status}`);
   cfg = r.body as unknown as GameConfig;
+  sessionCookie = await registerQaUser(BASE, uniqueQaUsername('cross'));
 });
 
 /** 真实内核推进出一局「进行中 + 双塔 + 场上仍有敌人」状态。
@@ -100,7 +110,11 @@ function buildRealPayload(): KernelSavePayload {
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   s = applyCommand(s, { type: 'START_WAVE' }, cfg).state;
   for (let i = 0; i < 421; i++) s = step(s, SIM_DT, cfg);
-  const payload = toSavePayload(s, { configVersion: cfg.version, savedAt: new Date().toISOString() });
+  const payload = toSavePayload(s, {
+    level: cfg.campaign.level,
+    configVersion: cfg.version,
+    savedAt: new Date().toISOString(),
+  });
   if (payload.towers.length === 0 || payload.enemies.length === 0) {
     throw new Error(`构造前提不成立：towers=${payload.towers.length} enemies=${payload.enemies.length}`);
   }
@@ -118,6 +132,7 @@ describe('Cross-Role-Check A：公开配置契约（后端响应 × 前端 zod�
     const diffs: any[] = [];
     const b = r.body;
     compareKeys('$', b, configResponseSchema, diffs);
+    compareKeys('$.campaign', b.campaign, configResponseSchema.shape.campaign, diffs);
     compareKeys('$.grid', b.grid, configResponseSchema.shape.grid, diffs);
     compareKeys('$.canvas', b.canvas, configResponseSchema.shape.canvas, diffs);
     compareKeys('$.map', b.map, configResponseSchema.shape.map, diffs);
@@ -141,14 +156,15 @@ describe('Cross-Role-Check A：公开配置契约（后端响应 × 前端 zod�
   });
 });
 
-describe('Cross-Role-Check B：存档契约（真实内核 payload × 后端 × 前端 schema）', () => {
+describe('Cross-Role-Check B：自动存档契约（真实内核 payload × 后端 × 前端 schema）', () => {
   it('B-1 真实内核 payload（含 cooldownMs / 浮点毫秒）PUT → 200，回读能被前端 savePayloadSchema 解析且逐字段一致', async (ctx) => {
     skipIfBackendDown(ctx, backendReady, BASE);
     const payload = buildRealPayload();
-    const put = await jsend('PUT', '/api/save/11', { ...payload, slot: 11 });
-    const got = await jget('/api/save/11');
-    const diff = got.status === 200 ? deepDiff({ ...payload, slot: 11 }, got.body) : ['<GET 未成功>'];
-    const zod = got.status === 200 ? savePayloadSchema.safeParse(got.body) : { success: false, error: { issues: [] } } as any;
+    const put = await jsend('PUT', '/api/autosave', payload);
+    const got = await jget('/api/autosave');
+    const roundTrip = got.status === 200 ? got.body.payload : null;
+    const diff = roundTrip ? deepDiff(payload, roundTrip) : ['<GET 未成功>'];
+    const zod = roundTrip ? savePayloadSchema.safeParse(roundTrip) : { success: false, error: { issues: [] } } as any;
 
     evidence.sections.saveContract = {
       // 对抗点：Developer 自报的契约漂移（Pydantic 缺 cooldownMs）曾让 PUT 直接 422
@@ -202,33 +218,35 @@ describe('Cross-Role-Check C：畸形 payload 对抗矩阵', () => {
     ];
     const rows: any[] = [];
     for (const [name, body, want] of cases) {
-      const r = await jsend('PUT', '/api/save/12', body);
+      const r = await jsend('PUT', '/api/autosave', body);
       const ok = want === 'ANY' ? r.status === 200 || r.status === 422 : String(r.status) === want;
       rows.push({ case: name, expect: want, actual: r.status, code: r.body?.error?.code ?? null, ok });
     }
-    // 槽位与 URL 不一致：URL 是权威，body.slot 不应覆盖
-    const slotBody = { ...clone(), slot: 14 };
-    const slotRes = await jsend('PUT', '/api/save/13', slotBody);
-    const readBack13 = await jget('/api/save/13');
-    const readBack14 = await jget('/api/save/14');
-    rows.push({ case: 'body.slot=14 但 URL=13（URL 应权威）', expect: '200', actual: slotRes.status, code: null, ok: slotRes.status === 200 });
+    // 未登录直接 PUT：必须 401（多用户化的守卫）
+    const unauth = await fetch(BASE + '/api/autosave', {
+      method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(clone()),
+    });
+    rows.push({ case: '未登录 PUT 自动存档（无 Cookie）', expect: '401', actual: unauth.status, code: null, ok: unauth.status === 401 });
 
     const coercionRow = rows.find((r) => r.expect === 'ANY');
     evidence.sections.malformedMatrix = {
       rows,
       // 观察项：Pydantic 非 strict 模式下数值字符串会被强转，故 "375.75" 被接受为 375.75
       numericStringCoercionAccepted: coercionRow?.actual === 200,
-      slotAuthority: { urlSlot13: readBack13.status, otherSlot14: readBack14.status, urlIsAuthoritative: readBack13.status === 200 && readBack14.status === 404 },
+      unauthGuard: { status: unauth.status, rejected: unauth.status === 401 },
       allRejectedAsExpected: rows.every((r) => r.ok),
     };
     for (const row of rows) expect(row.ok, `${row.case}: 期望 ${row.expect} 实得 ${row.actual} code=${row.code}`).toBe(true);
-    expect(readBack13.status).toBe(200);
-    expect(readBack14.status, 'body.slot 不应把存档写到 URL 之外的槽位').toBe(404);
+    expect(unauth.status, '未登录必须 401').toBe(401);
   });
 
-  it('C-2 缺槽位 → 404 且错误信封形状稳定；记录列表契约（字段完整性 + 倒序）', async (ctx) => {
+  it('C-2 无自动存档 → 404 且错误信封形状稳定；记录列表契约（字段完整性 + 倒序）', async (ctx) => {
     skipIfBackendDown(ctx, backendReady, BASE);
-    const missing = await jget('/api/save/999');
+    // 用一个全新账号验证「无自动存档」的 404（当前账号已有存档）
+    const prevCookie = sessionCookie;
+    sessionCookie = await registerQaUser(BASE, uniqueQaUsername('empty'));
+    const missing = await jget('/api/autosave');
+    sessionCookie = prevCookie;
     // 用唯一标记隔离：后端库可能被同批其他用例并发写（vitest 默认按文件并行）
     const marker = `qa-marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const posted: any[] = [];
@@ -254,13 +272,13 @@ describe('Cross-Role-Check C：畸形 payload 对抗矩阵', () => {
       const prev = items[i - 1];
       return prev.createdAt > cur.createdAt || (prev.createdAt === cur.createdAt && prev.id > cur.id);
     });
-    const requiredKeys = ['id', 'result', 'waveReached', 'livesRemaining', 'elapsedMs', 'configVersion', 'createdAt'];
+    const requiredKeys = ['id', 'result', 'level', 'waveReached', 'livesRemaining', 'elapsedMs', 'configVersion', 'createdAt'];
     const firstItemKeys = items[0] ? Object.keys(items[0]).sort() : [];
     const allItemsComplete = items.every((x) => requiredKeys.every((k) => k in x));
     const mine = items.filter((x) => x.configVersion === marker);
 
     evidence.sections.recordsAndNotFound = {
-      missingSlot: { status: missing.status, envelope: missing.body },
+      missingAutosave: { status: missing.status, envelope: missing.body },
       envelopeShapeOk: !!(missing.body?.error && typeof missing.body.error.code === 'string' && typeof missing.body.error.message === 'string'),
       marker, postedIds: posted.map((p) => p.id), mineInList: mine.length,
       totalAfter: after.body?.total, orderedByTimeDesc, sampleIds: ids.slice(0, 12),
@@ -293,7 +311,7 @@ describe('Cross-Role-Check C：畸形 payload 对抗矩阵', () => {
       malformedRejectedAll: s.malformedMatrix?.allRejectedAsExpected ?? null,
       malformedCases: s.malformedMatrix?.rows?.length ?? 0,
       numericStringCoercionAccepted: s.malformedMatrix?.numericStringCoercionAccepted ?? null,
-      urlSlotAuthoritative: s.malformedMatrix?.slotAuthority?.urlIsAuthoritative ?? null,
+      urlSlotAuthoritative: s.malformedMatrix?.unauthGuard?.rejected ?? null,
       recordsAllItemsComplete: s.recordsAndNotFound?.allItemsComplete ?? null,
       recordsOrderedByTimeDesc: s.recordsAndNotFound?.orderedByTimeDesc ?? null,
       recordsFloatMsPreserved: s.recordsAndNotFound?.floatMsPreserved ?? null,

@@ -63,10 +63,25 @@ def get_session_factory() -> sessionmaker[Session]:
 
 
 def init_db() -> None:
-    """建表（幂等）。"""
+    """建表（幂等）+ 轻量迁移（旧库补新列）。"""
+    from sqlalchemy import inspect, text
+
     from . import models  # noqa: F401  确保模型已注册到 Base.metadata
 
-    Base.metadata.create_all(bind=get_engine())
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+
+    # 迁移：v1 时代的 record 表没有 level / user_id 列，补上（新增表由 create_all 负责）。
+    inspector = inspect(engine)
+    if "record" in inspector.get_table_names():
+        columns = {column["name"] for column in inspector.get_columns("record")}
+        if "level" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE record ADD COLUMN level INTEGER NOT NULL DEFAULT 1"))
+            columns.add("level")
+        if "user_id" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE record ADD COLUMN user_id INTEGER"))
 
 
 def get_db() -> Iterator[Session]:

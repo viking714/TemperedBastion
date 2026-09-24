@@ -126,9 +126,40 @@ class WaveDef(_Strict):
     groups: list[WaveGroup]
 
 
-class LevelConfig(_Strict):
-    """level.json 的原始形状（不含 version，version 由内容 hash 派生）。"""
+class LevelEntry(_Strict):
+    """单关定义：地图 + 经济参数 + 波次（v2 起 level.json 支持多关卡）。"""
 
+    id: int = Field(ge=1)
+    name: str = Field(min_length=1)
+    map: MapConfig
+    economy: EconomyConfig
+    waves: list[WaveDef] = Field(min_length=1)
+
+
+class CampaignConfig(_Strict):
+    """level.json v2 的原始形状（关卡列表 + 全区共享的塔/敌人/规则）。"""
+
+    grid: GridConfig
+    canvas: CanvasConfig
+    rules: RulesConfig
+    towers: list[TowerDef] = Field(min_length=1)
+    enemies: list[EnemyDef] = Field(min_length=1)
+    levels: list[LevelEntry] = Field(min_length=1)
+
+
+class CampaignInfo(_Strict):
+    """当前关卡在战役中的位置（注入 ConfigResponse，供前端展示与闯关衔接）。"""
+
+    level: int = Field(ge=1)
+    name: str = Field(min_length=1)
+    totalLevels: int = Field(ge=1)
+
+
+class ConfigResponse(_Strict):
+    """GET /api/config?level=N 的响应：单关合成配置 + 战役信息 + 内容 hash。"""
+
+    version: str
+    campaign: CampaignInfo
     grid: GridConfig
     canvas: CanvasConfig
     map: MapConfig
@@ -139,10 +170,30 @@ class LevelConfig(_Strict):
     waves: list[WaveDef] = Field(min_length=1)
 
 
-class ConfigResponse(LevelConfig):
-    """GET /api/config 的响应：配置原文 + 内容 hash 作为版本号。"""
+# --------------------------------------------------------------------------------------
+# 认证（注册 / 登录 / 会话）
+# --------------------------------------------------------------------------------------
 
-    version: str
+
+class UserOut(_Strict):
+    id: int = Field(ge=1)
+    username: str = Field(min_length=1)
+    createdAt: str
+
+
+class RegisterRequest(_Strict):
+    # 允许中英文、数字、下划线与连字符；长度 2~20。
+    username: str = Field(min_length=2, max_length=20, pattern=r"^[A-Za-z0-9_\u4e00-\u9fff-]+$")
+    password: str = Field(min_length=6, max_length=72)
+
+
+class LoginRequest(_Strict):
+    username: str = Field(min_length=1, max_length=20)
+    password: str = Field(min_length=1, max_length=72)
+
+
+class OkResponse(_Strict):
+    ok: bool
 
 
 # --------------------------------------------------------------------------------------
@@ -213,6 +264,7 @@ class SavePayload(_Strict):
     """
 
     slot: int | None = None
+    level: int = Field(default=1, ge=1)
     configVersion: str
     savedAt: str
     elapsedMs: float = Field(ge=0)  # ★
@@ -231,10 +283,16 @@ class SavePayload(_Strict):
     nextProjectileId: int = Field(ge=0)
 
 
-class SaveWriteResponse(_Strict):
+class AutoSaveWriteResponse(_Strict):
     ok: bool
-    slot: int
     updatedAt: str
+
+
+class AutoSaveOut(_Strict):
+    """GET /api/autosave 的响应：快照 + 战役总关卡数（供客户端决定续关位置）。"""
+
+    payload: SavePayload
+    totalLevels: int = Field(ge=1)
 
 
 # --------------------------------------------------------------------------------------
@@ -244,6 +302,7 @@ class SaveWriteResponse(_Strict):
 
 class RecordCreate(_Strict):
     result: Literal["victory", "defeat"]
+    level: int = Field(default=1, ge=1)
     waveReached: int = Field(ge=1, le=1000)
     livesRemaining: int = Field(ge=0)
     elapsedMs: float = Field(ge=0)
@@ -266,6 +325,10 @@ class HealthOut(_Strict):
 
 __all__ = [
     "ApiError",
+    "AutoSaveOut",
+    "AutoSaveWriteResponse",
+    "CampaignConfig",
+    "CampaignInfo",
     "ConfigResponse",
     "CanvasConfig",
     "EnemyDef",
@@ -273,19 +336,22 @@ __all__ = [
     "ErrorEnvelope",
     "GridConfig",
     "HealthOut",
-    "LevelConfig",
+    "LevelEntry",
+    "LoginRequest",
     "MapConfig",
+    "OkResponse",
     "RecordCreate",
     "RecordListOut",
     "RecordOut",
+    "RegisterRequest",
     "RulesConfig",
     "SavePayload",
-    "SaveWriteResponse",
     "SpawnGroupProgress",
     "SpawnProgressSnapshot",
     "TowerDef",
     "TowerLevelStats",
     "TowerSnapshot",
+    "UserOut",
     "ValidationError",
     "WaveDef",
     "WaveGroup",

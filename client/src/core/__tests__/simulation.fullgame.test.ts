@@ -29,17 +29,10 @@ const slow = towerIdByRole(config, 'slow');
 const BUILD_TILES: TileCoord[] = planTowerTiles(config, single, 24);
 const BUILD_ROTATION = [single, single, single, splash, slow, single, single, splash, slow];
 
-/** 挑一个「现在能做的」动作：先建塔，再挑最便宜的可行升级。 */
-function planAction(state: GameState): GameCommand | null {
-  for (let i = 0; i < BUILD_TILES.length; i++) {
-    const tile = BUILD_TILES[i];
-    if (findTowerAt(state, tile.col, tile.row)) continue;
-    const towerId = BUILD_ROTATION[i % BUILD_ROTATION.length];
-    const def = getTowerDef(config, towerId);
-    if (!def || state.gold < def.cost) continue;
-    return { type: 'BUILD_TOWER', col: tile.col, row: tile.row, towerId };
-  }
+/** 挑一个「现在能做的」动作：塔铺到一定数量后先升级，否则先建塔，再挑最便宜的可行升级。 */
+const UPGRADE_FIRST_TOWERS = config.towers.length * 2;
 
+function planCheapestUpgrade(state: GameState): GameCommand | null {
   let best: { col: number; row: number; cost: number } | null = null;
   for (const tower of state.towers) {
     const def = getTowerDef(config, tower.towerId);
@@ -50,6 +43,24 @@ function planAction(state: GameState): GameCommand | null {
   }
   if (best) return { type: 'UPGRADE_TOWER', col: best.col, row: best.row };
   return null;
+}
+
+function planAction(state: GameState): GameCommand | null {
+  if (state.towers.length >= UPGRADE_FIRST_TOWERS) {
+    const upgrade = planCheapestUpgrade(state);
+    if (upgrade) return upgrade;
+  }
+
+  for (let i = 0; i < BUILD_TILES.length; i++) {
+    const tile = BUILD_TILES[i];
+    if (findTowerAt(state, tile.col, tile.row)) continue;
+    const towerId = BUILD_ROTATION[i % BUILD_ROTATION.length];
+    const def = getTowerDef(config, towerId);
+    if (!def || state.gold < def.cost) continue;
+    return { type: 'BUILD_TOWER', col: tile.col, row: tile.row, towerId };
+  }
+
+  return planCheapestUpgrade(state);
 }
 
 /** 把当前金币尽可能花掉（建塔 / 升级）。 */
