@@ -32,7 +32,7 @@ const tsValues = Object.fromEntries(Object.entries(cssTokens).map(([key, value])
 describe('theme: tokens.css ↔ tokens.ts 一致性', () => {
   it('CSS 里确实解析出了令牌（解析器没失效）', () => {
     expect(Object.keys(cssValues).length).toBeGreaterThan(80);
-    expect(cssValues['md-sys-color-primary']).toBe('#8ad5ff');
+    expect(cssValues['md-sys-color-primary']).toBe('#2f9e4f');
   });
 
   it('TS 里没有 CSS 中不存在的令牌', () => {

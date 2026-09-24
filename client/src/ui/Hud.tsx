@@ -65,7 +65,24 @@ export function Hud({
   return (
     <header className="td-hud">
       <div className="td-hud__brand">
-        <span className="td-hud__logo" aria-hidden="true" />
+        <span className="td-hud__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img" aria-label="carrot">
+            <path d="M12 3 L13.6 8 L10.4 8 Z" style={{ fill: 'var(--md-sys-color-secondary)' }} />
+            <path d="M8.5 4.5 L10.6 9 L6.8 9 Z" style={{ fill: 'var(--md-sys-color-secondary)' }} />
+            <path d="M15.5 4.5 L17.2 9 L13.4 9 Z" style={{ fill: 'var(--md-sys-color-secondary-container)' }} />
+            <path d="M12 8 L6.5 21 L17.5 21 Z" style={{ fill: 'var(--td-canvas-base)' }} />
+            <path
+              d="M10.6 11.5 H13.4 M9.6 14.5 H14.4 M8.6 17.5 H15.4"
+              style={{
+                stroke: 'var(--md-sys-color-on-surface)',
+                strokeWidth: 1,
+                opacity: 0.22,
+                fill: 'none',
+                strokeLinecap: 'round',
+              }}
+            />
+          </svg>
+        </span>
         <div>
           <h1 className="td-hud__title">淬炼塔防</h1>
           <p className="td-hud__subtitle">

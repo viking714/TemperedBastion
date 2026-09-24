@@ -3,6 +3,7 @@ node_modules/
 dist/
 .vite/
 *.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
 
 # ---- Python / 后端 ----
 __pycache__/
